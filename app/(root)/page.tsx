@@ -1,10 +1,14 @@
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import React from "react";
 
 interface SearchParams {
   searchParams: Promise<{ [key: string]: string | number | boolean }>;
 }
 
-const MainContent = ({ searchParams }: { searchParams: SearchParams }) => {
+const MainContent = async ({ searchParams }: { searchParams: SearchParams }) => {
+  const session =  await auth()
+  if(!session) return redirect("/sign-in");
   return (
     <main className="">
       <div className="">
