@@ -2,7 +2,7 @@ import User from "@/database/user.model";
 import handleError from "@/lib/handler/error";
 import { ValidationError } from "@/lib/http.error";
 import dbConnect from "@/lib/mongoose";
-import { SignInSchema, UserSchema } from "@/lib/validations";
+import {  UserSchema } from "@/lib/validations";
 import { NextResponse } from "next/server";
 
 export async function GET() {

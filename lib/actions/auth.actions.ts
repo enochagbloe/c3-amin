@@ -2,12 +2,12 @@
 import Account from "@/database/account.model";
 import mongoose from "mongoose";
 import User from "@/database/user.model";
-import bcrypt from "bcrypt";
 import { signIn } from "@/auth";
 import action from "../handler/action";
 import handleError from "../handler/error";
 import { NotFoundError } from "../http.error";
 import { SignInSchema, SignUpSchema } from "../validations";
+import bcrypt from "bcryptjs"
 
 
 export async function signUpWithCredentials(
