@@ -92,3 +92,41 @@ export const AccountSchema = z.object({
     .string()
     .min(1, { message: "Provider Account ID is required." }),
 });
+
+export const ExpenseTrackerInputSchema = z.object({
+  name: z
+    .string()
+    .min(2, { message: "Name must be at least 2 characters." })
+    .max(100, { message: "Name cannot exceed 100 characters." }),
+
+  amount: z
+    .union([z.number(), z.string()])
+    .transform((val) => (typeof val === "string" ? Number(val) : val))
+    .refine((val) => !isNaN(val) && val > 0, {
+      message: "Amount must be a positive number.",
+    }),
+
+  status: z.enum(["pending", "processing", "success", "failed"]).optional(),
+
+  date: z.preprocess(
+    (val) => {
+      if (val instanceof Date) {
+        // Convert Date -> "YYYY-MM-DD"
+        return val.toISOString().split("T")[0];
+      }
+      return val;
+    },
+    z
+      .string()
+      .min(1, { message: "Date is required." })
+      .regex(/^\d{4}-\d{2}-\d{2}$/, {
+        message: "Invalid date format.",
+      })
+  ),
+
+  description: z
+    .string()
+    .max(200, { message: "Description cannot exceed 200 characters." })
+    .optional()
+    .or(z.literal("")),
+});
