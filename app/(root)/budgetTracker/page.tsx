@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import * as React from "react";
 import { columns, Payment } from "./columns";
@@ -13,9 +14,10 @@ const BudgetTracker = () => {
   const [open, setOpen] = React.useState(false);
   const [tableData, setTableData] = React.useState<Payment[]>(data);
 
-  const router = useRouter()
+  const router = useRouter();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
+
   const handleSubmit = async (formData: any) => {
     try {
       console.log("Received form data:", formData);
@@ -76,6 +78,14 @@ const BudgetTracker = () => {
           // author: "",
         }}
         onSubmit={handleSubmit}
+        fieldConfig={{
+          name: {
+            type: "",
+            options: "",
+            placeholder: "Select User",
+            //loading: isLoading
+          },
+        }}
       />
 
       <div className="container mx-auto py-10">
