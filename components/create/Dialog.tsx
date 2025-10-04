@@ -7,7 +7,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import { useForm, SubmitHandler, FieldValues } from "react-hook-form";
+import { useForm, SubmitHandler, FieldValues, Field } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import z, { ZodType } from "zod";
 import { toast } from "sonner";
@@ -27,6 +27,20 @@ import { Calendar } from "../ui/calendar";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 
+interface FieldOption {
+  label: string;
+  value: string;
+}
+
+interface FieldConfig {
+  [key: string]: {
+    type: string;
+    options?: FieldOption[] | any;
+    placeholder?: string;
+    isLoading?: boolean | true;
+  }
+}
+
 interface ReusableDialogProps<T extends FieldValues> {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -36,6 +50,7 @@ interface ReusableDialogProps<T extends FieldValues> {
   onSubmit: (data: T) => void | Promise<ActionResponse | void>;
   children?: React.ReactNode;
   dialogName: string;
+  fieldConfig?: FieldConfig;
 }
 
 export function ReusableDialog<T extends FieldValues>({
@@ -60,6 +75,7 @@ export function ReusableDialog<T extends FieldValues>({
         onOpenChange(false);
         form.reset();
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       toast.error("An error occurred while submitting the form");
     }
