@@ -6,8 +6,8 @@ import { ColumnDef } from "@tanstack/react-table";
 export type Payment = {
   id: string;
   name: string;
-  amount: number;
-  status: "pending" | "processing" | "success" | "failed";
+  amount: string;
+  status: "pending" | "approved" | "failed";
   date: string;
   description: string;
   author?: string;

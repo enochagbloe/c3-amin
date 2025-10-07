@@ -20,7 +20,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     await dbConnect();
-    const body = request.json();
+    const body = await request.json();
 
     const validateData = UserSchema.safeParse(body);
     if (!validateData.success) {
@@ -30,11 +30,11 @@ export async function POST(request: Request) {
     const { email, username } = validateData.data;
 
     const existingUser = await User.findOne({ email });
-    if (!existingUser) {
+    if (existingUser) {
       throw new ValidationError({ email: ["email already in use."] });
     }
 
-    const existingUsername = await User.findOne({ username });
+    const existingUsername = await User .findOne({ username });
     if (!existingUsername) {
       throw new ValidationError({ username: ["Username already in use"] });
     }

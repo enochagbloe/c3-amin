@@ -29,7 +29,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     await dbConnect();
-    const body = req.json();
+    const body = await req.json();
     const validateData = SignUpSchema.safeParse(body);
 
     //check for an existing Account
