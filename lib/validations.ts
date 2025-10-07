@@ -100,28 +100,24 @@ export const ExpenseTrackerInputSchema = z.object({
     .max(100, { message: "Name cannot exceed 100 characters." }),
 
   amount: z
-    .union([z.number(), z.string()])
-    .transform((val) => (typeof val === "string" ? Number(val) : val))
-    .refine((val) => !isNaN(val) && val > 0, {
-      message: "Amount must be a positive number.",
-    }),
+    .string()
+    .min(1, "Amount is required")
+    // .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+    //   message: "Amount must be a positive number.",
+    // })
+    // .transform((val) => parseFloat(val))
+    ,
 
-  status: z.enum(["pending", "processing", "success", "failed"]).optional(),
+  status: z.enum(["pending", "approved", "failed"]).optional(),
 
   date: z.preprocess(
     (val) => {
-      if (val instanceof Date) {
-        // Convert Date -> "YYYY-MM-DD"
-        return val.toISOString().split("T")[0];
-      }
+      if (typeof val === "string") return new Date(val);
       return val;
     },
-    z
-      .string()
-      .min(1, { message: "Date is required." })
-      .regex(/^\d{4}-\d{2}-\d{2}$/, {
-        message: "Invalid date format.",
-      })
+    z.date({
+      message: "Date is required.",
+    })
   ),
 
   description: z

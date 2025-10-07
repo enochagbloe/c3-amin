@@ -11,12 +11,14 @@ type ActionOptions<T> = {
   params?: T;
   schema?: ZodSchema<T>;
   authorize?: boolean;
+  useMongo?: boolean;
 };
 
 async function action<T>({
   params,
   schema,
   authorize = false,
+  useMongo = false,
 }: ActionOptions<T>) {
   // if we have access to the params and the schema
   if (params && schema) {
@@ -45,9 +47,10 @@ async function action<T>({
     if (!session) return new UnauthorizedError();
   }
 
-  // connect to database
-  await dbConnect();
-
+  if (useMongo) {
+    // connect to database
+    await dbConnect();
+  }
   // return the session and the params
   return { params, session };
 }

@@ -6,6 +6,8 @@ import { ReusableDialog } from "@/components/create/Dialog";
 import { ExpenseTrackerInputSchema } from "@/lib/validations";
 import { ReusableDataTable } from "@/components/ReuableDataTable";
 import { useRouter } from "next/navigation";
+import { createBudgetExpense } from "@/lib/actions/budgetTracker.action";
+import { toast } from "sonner";
 
 // Sample data matching the Payment type
 const data: Payment[] = [];
@@ -16,32 +18,17 @@ const BudgetTracker = () => {
 
   const router = useRouter();
 
-
-
   const handleSubmit = async (formData: any) => {
-    try {
-      console.log("Received form data:", formData);
-
-      // Create a new payment with the form data
-      const newPayment: Payment = {
-        id: Math.random().toString(36).substr(2, 9), // Generate random ID
-        name: formData.name,
-        amount: Number(formData.amount),
-        status: formData.status || "pending",
-        date: formData.date,
-        description: formData.description || "",
-        // Remove author field if it's not in your schema/form
-        // author: formData.author,
-      };
-
-      // Add the new payment to the table data
-      setTableData((prevData) => [...prevData, newPayment]);
-      console.log("New payment added:", newPayment);
-
-      return { success: true };
-    } catch (error) {
-      console.error("Error adding payment:", error);
-      return { success: false };
+    const result = await createBudgetExpense(formData);
+    // add the new expense to the table data
+    if (result.success) {
+      setTableData((prevData) => [...prevData, result.data] as any);
+      setOpen(false);
+      console.log("Expense created:", result.data);
+      toast.success("Expense created successfully");
+      router.refresh();
+    } else {
+      toast.error("Error creating expense");
     }
   };
   const handleRowClick = (expense: Payment) => {
