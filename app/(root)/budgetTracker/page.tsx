@@ -15,8 +15,18 @@ const data: Payment[] = [];
 const BudgetTracker = () => {
   const [open, setOpen] = React.useState(false);
   const [tableData, setTableData] = React.useState<Payment[]>(data);
-
   const router = useRouter();
+
+  //fetch data from api and set it to table data
+  React.useEffect(() => {
+    const fetchData = async () => {
+      const result = await fetch("/api/budgetTracker").then((res) =>
+        res.json()
+      );
+      setTableData(result.data);
+    };
+    fetchData();
+  }, []);
 
   const handleSubmit = async (formData: any) => {
     const result = await createBudgetExpense(formData);

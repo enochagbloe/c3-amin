@@ -126,3 +126,18 @@ export const ExpenseTrackerInputSchema = z.object({
     .optional()
     .or(z.literal("")),
 });
+
+export const PaginationSearchParamsSchema = z.object({
+  page: z.number().min(1, { message: "Page must be at least 1." }).default(1),
+  pageSize: z
+    .number()
+    .min(1, { message: "Page size must be at least 1." })
+    .default(10),
+  query: z.string().optional(),
+  filter: z.string().optional(),
+  sort: z.string().optional(),
+});
+
+export const GetExpenseSchema = z.object({
+  expensesId: z.string().min(1, { message: "Expense ID is required." }),
+});

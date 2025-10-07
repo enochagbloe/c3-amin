@@ -3,7 +3,7 @@ import { ExpenseTracker } from "../generated/prisma";
 import action from "../handler/action";
 import handleError from "../handler/error";
 import prisma from "../prisma";
-import { ExpenseTrackerInputSchema } from "../validations";
+import { ExpenseTrackerInputSchema, GetExpenseSchema } from "../validations";
 import { auth } from "@/auth";
 
 export async function createBudgetExpense(
@@ -12,7 +12,7 @@ export async function createBudgetExpense(
   const validationResult = await action({
     params: {
       ...params,
-      amount: (params.amount).toString(),
+      amount: params.amount.toString(),
       date: new Date(params.date),
     },
     schema: ExpenseTrackerInputSchema,
@@ -38,6 +38,39 @@ export async function createBudgetExpense(
     });
     console.log("New Expense Created:", newExpenses);
     return { success: true, data: newExpenses };
+  } catch (error) {
+    return handleError(error) as ErrorResponse;
+  }
+}
+
+export async function getAllExpense(
+  params: GetExpenseParams
+): Promise<ActionResponse<ExpenseTracker[]>> {
+  const validationResult = await action({
+    params,
+    schema: GetExpenseSchema,
+    authorize: false,
+    useMongo: false,
+  });
+
+  if (validationResult instanceof Error)
+    return handleError(validationResult) as ErrorResponse;
+
+  const { expensesId } = validationResult.params!;
+  try {
+    const expense = await prisma.expenseTracker.findUnique({
+      where: { id: expensesId },
+    });
+    if (!expense) {
+      return {
+        success: false,
+        error: {
+          message: "Expense not found.",
+          details: {},
+        },
+      };
+    }
+    return { success: true, data: JSON.parse(JSON.stringify(expense)) };
   } catch (error) {
     return handleError(error) as ErrorResponse;
   }
