@@ -1,318 +1,176 @@
-"use client";
-
-import { useRouter, useParams } from "next/navigation";
+import { getAllExpense } from "@/lib/actions/budgetTracker.action";
+import { ExpenseTracker } from "@/lib/generated/prisma";
+import { notFound } from "next/navigation";
+import React from "react";
 import {
-  ChevronLeft,
-  Calendar,
-  FileText,
-  Tag,
-  User,
-} from "lucide-react";
-import { useEffect, useState } from "react";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/seperator";
+import { Calendar, DollarSign, FileText, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-// Import your Payment type
-type Payment = {
-  id: string;
-  name: string;
-  amount: number;
-  status: "pending" | "approved" | "failed";
-  date: string;
-  description: string;
-  author?: string;
-};
+interface RouteParams {
+  params: {
+    id: string;
+  };
+}
 
-// TODO: Replace this with your actual data fetching logic
-// This could be an API call, database query, or global state
-const fetchExpenseById = async (id: string): Promise<Payment | null> => {
-  try {
-    // Example: API call
-    // const response = await fetch(`/api/expenses/${id}`);
-    // const data = await response.json();
-    // return data;
+const ExpenseDetailsPage = async ({ params }: RouteParams) => {
+  const { id } = await params;
 
-    // For now, you'll need to implement your data fetching here
-    // Options:
-    // 1. Fetch from your API
-    // 2. Use global state (Redux, Zustand, etc.)
-    // 3. Pass data through localStorage temporarily
-    // 4. Query from database
-
-    // Temporary: Check localStorage for demo purposes
-    const storedExpenses = localStorage.getItem("expenses");
-    if (storedExpenses) {
-      const expenses: Payment[] = JSON.parse(storedExpenses);
-      return expenses.find((expense) => expense.id === id) || null;
-    }
-
-    return null;
-  } catch (error) {
-    console.error("Error fetching expense:", error);
-    return null;
+  if (!id) {
+    return <div>No Expense ID provided</div>;
   }
-};
 
-const ExpenseDetailsPage = () => {
-  const router = useRouter();
-  const params = useParams();
-  const [expense, setExpense] = useState<Payment | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Fetch data from the server action
+  const response = await getAllExpense({ expensesId: id });
 
-  useEffect(() => {
-    const loadExpense = async () => {
-      if (params.id) {
-        const expenseData = await fetchExpenseById(params.id as string);
-        setExpense(expenseData);
-        setLoading(false);
-      }
-    };
+  if (!response.success || !response.data) return notFound();
 
-    loadExpense();
-  }, [params.id]);
+  const expensesData = response.data as ExpenseTracker;
+  const { name, amount, status, date, description } = expensesData;
 
-  const handleBack = () => {
-    router.back(); // Goes back to previous page
-    // OR use: router.push('/budget'); // Goes to specific route
-  };
-
-  const getStatusColor = (status: Payment["status"]) => {
-    switch (status) {
+  // Status variant mapping
+  const getStatusVariant = (status: string) => {
+    switch (status.toLowerCase()) {
       case "approved":
-        return "bg-green-100 text-green-800 border-green-200";
+        return "default";
       case "pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "failed":
-        return "bg-red-100 text-red-800 border-red-200";
+        return "secondary";
+      case "rejected":
+        return "destructive";
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return "outline";
     }
   };
 
-  const getStatusIcon = (status: Payment["status"]) => {
-    switch (status) {
-      case "approved":
-        return "✓";
-      case "pending":
-        return "⏱";
-      case "failed":
-        return "✕";
-      default:
-        return "•";
-    }
-  };
+  // const handleClick = () => {
+  //   router.back();
+  // };
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading expense details...</p>
+  return (
+    <>
+      <div className="flex justify-between mb-14 ">
+        <button
+          className="text-sm text-slate-500 dark:text-white"
+          //onClick={handleClick}
+        >
+          Back
+        </button>
+        <div className="ml-auto gap-4 p-2 hover:cursor-pointer">
+          <Button variant="outline">Approve</Button>
+          <Button variant="outline">Reject</Button>
         </div>
       </div>
-    );
-  }
-
-  // Not found state
-  if (!expense) {
-    return (
-      <div className=" flex items-center justify-center p-4">
-        no expenses found
-      </div>
-    );
-  }
-
-  // Main details page
-  return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          {/* Header */}
-          <div className="px-6 py-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600">
-            <div className="flex items-center">
-              <button
-                onClick={handleBack}
-                className="mr-4 p-2 text-white hover:bg-white/20 rounded-lg transition-colors"
-                aria-label="Go back"
-              >
-                <ChevronLeft className="h-6 w-6" />
-              </button>
-              <div className="flex-1">
-                <h1 className="text-2xl font-bold text-white mb-1">
-                  {expense.name}
-                </h1>
-                <p className="text-blue-100 text-sm">
-                  Transaction ID: {expense.id}
-                </p>
-              </div>
-              <div
-                className={`px-4 py-2 rounded-lg border-2 ${getStatusColor(
-                  expense.status
-                )}`}
-              >
-                <span className="font-semibold text-sm flex items-center gap-2">
-                  <span>{getStatusIcon(expense.status)}</span>
-                  {expense.status.charAt(0).toUpperCase() +
-                    expense.status.slice(1)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="p-6">
-            {/* Amount - Featured */}
-            <div className="mb-8 text-center p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
-              <p className="text-sm text-gray-600 mb-2">Total Amount</p>
-              <p className="text-5xl font-bold text-gray-900">
-                ${expense.amount.toFixed(2)}
-              </p>
-            </div>
-
-            {/* Details Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              {/* Date */}
-              <div className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <Calendar className="h-6 w-6 text-blue-600" />
+      <div>
+        <h1 className="text-4xl font-bold">Expense Details</h1>
+        <div className="container max-w-4xl mx-auto p-6 space-y-6">
+          {/* Header Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <CardTitle className="text-3xl font-bold">{name}</CardTitle>
+                  <CardDescription>Expense Details</CardDescription>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-500 font-medium mb-1">Date</p>
-                  <p className="text-gray-900 font-semibold">
-                    {new Date(expense.date).toLocaleDateString("en-US", {
+                <Badge
+                  variant={getStatusVariant(status)}
+                  className="text-sm px-3 py-1"
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </Badge>
+              </div>
+            </CardHeader>
+          </Card>
+
+          {/* Details Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Amount */}
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg dark:bg-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-100 rounded-full">
+                    <DollarSign className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500 font-medium dark:text-white">
+                      Amount
+                    </p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                      ${parseFloat(amount.toString()).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Date */}
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-full">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500 font-medium dark:text-white">
+                    Date
+                  </p>
+                  <p className="text-base font-semibold text-slate-900 dark:text-white">
+                    {new Date(date).toLocaleDateString("en-US", {
                       weekday: "long",
                       year: "numeric",
                       month: "long",
                       day: "numeric",
                     })}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {new Date(expense.date).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </p>
                 </div>
               </div>
 
-              {/* Status Details */}
-              <div className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <Tag className="h-6 w-6 text-purple-600" />
+              <Separator />
+
+              {/* Status */}
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-100 rounded-full">
+                  <TrendingUp className="w-5 h-5 text-purple-600" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-500 font-medium mb-1">
-                    Payment Status
+                <div>
+                  <p className="text-sm text-slate-500 font-medium dark:text-white">
+                    Status
                   </p>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(
-                        expense.status
-                      )}`}
-                    >
-                      {expense.status.charAt(0).toUpperCase() +
-                        expense.status.slice(1)}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    {expense.status === "approved" &&
-                      "Payment completed successfully"}
-                    {expense.status === "pending" && "Awaiting confirmation"}
-                    {expense.status === "pending" &&
-                      "Payment being processed"}
-                    {expense.status === "failed" && "Payment failed"}
+                  <p className="text-base font-semibold text-slate-900 dark:text-white">
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
                   </p>
                 </div>
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* Description Section */}
-            <div className="mb-6">
-              <div className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="p-3 bg-orange-100 rounded-lg">
-                  <FileText className="h-6 w-6 text-orange-600" />
+          {/* Description Card */}
+          {description && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-slate-600" />
+                  <CardTitle className="text-xl">Description</CardTitle>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-500 font-medium mb-2">
-                    Description
-                  </p>
-                  <p className="text-gray-900 leading-relaxed">
-                    {expense.description ||
-                      "No description provided for this expense."}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Author Section - if available */}
-            {expense.author && (
-              <div className="mb-6">
-                <div className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="p-3 bg-indigo-100 rounded-lg">
-                    <User className="h-6 w-6 text-indigo-600" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-500 font-medium mb-1">
-                      Created By
-                    </p>
-                    <p className="text-gray-900 font-semibold">
-                      {expense.author}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Summary Section */}
-            <div className="mt-8 p-5 bg-blue-50 rounded-lg border border-blue-200">
-              <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                <span className="text-blue-600">ℹ</span>
-                Summary
-              </h4>
-              <p className="text-sm text-gray-700 leading-relaxed">
-                This expense of{" "}
-                <span className="font-semibold">
-                  ${expense.amount.toFixed(2)}
-                </span>{" "}
-                for <span className="font-semibold">{expense.name}</span> was
-                recorded on{" "}
-                <span className="font-semibold">
-                  {new Date(expense.date).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </span>{" "}
-                with a status of{" "}
-                <span className="font-semibold">{expense.status}</span>.
-                {expense.description && (
-                  <span> Note: {expense.description}</span>
-                )}
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="mt-8 flex gap-3">
-              <button
-                onClick={handleBack}
-                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-medium transition-colors"
-              >
-                Back to List
-              </button>
-              <button
-                onClick={() => {
-                  // TODO: Implement edit functionality
-                  console.log("Edit expense:", expense.id);
-                }}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-              >
-                Edit Expense
-              </button>
-            </div>
-          </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
+                  {description}
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

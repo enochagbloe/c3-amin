@@ -23,6 +23,9 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Trash2 } from "lucide-react";
+import { Pen } from 'lucide-react';
+
 
 interface ReusableDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -102,7 +105,11 @@ export function ReusableDataTable<TData, TValue>({
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
                   onClick={() => onRowClick?.(row.original)} // ← Added click handler
-                  className={onRowClick ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""} // ← Added styling
+                  className={
+                    onRowClick
+                      ? "cursor-pointer hover:bg-muted/50 transition-colors"
+                      : ""
+                  } // ← Added styling
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -112,6 +119,15 @@ export function ReusableDataTable<TData, TValue>({
                       )}
                     </TableCell>
                   ))}
+                  {/* Actions */}
+                  <div className="flex m-3 gap-2">
+                    <div>
+                      <Pen />
+                    </div>
+                    <div className="text-red-500 hover:text-red-700 cursor-pointer size-1">
+                      <Trash2 />
+                    </div>
+                  </div>
                 </TableRow>
               ))
             ) : (

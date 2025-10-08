@@ -7,6 +7,17 @@ type ActionResponse<T = null> = {
   };
 };
 
+interface Payment {
+  id: string;
+  name: string;
+  amount: string;
+  status: "pending" | "approved" | "failed";
+  date: string;
+  description: string;
+  author?: string;
+};
+
+
 type ErrorResponse = ActionResponse<undefined> & {
   success: false;
 };

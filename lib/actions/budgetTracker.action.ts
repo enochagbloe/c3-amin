@@ -45,7 +45,7 @@ export async function createBudgetExpense(
 
 export async function getAllExpense(
   params: GetExpenseParams
-): Promise<ActionResponse<ExpenseTracker[]>> {
+): Promise<ActionResponse<ExpenseTracker>> {
   const validationResult = await action({
     params,
     schema: GetExpenseSchema,
