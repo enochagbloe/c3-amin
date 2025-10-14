@@ -23,16 +23,16 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2 } from "lucide-react";
-import { Pen } from 'lucide-react';
-
+import { Trash2, Pen } from "lucide-react";
 
 interface ReusableDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   searchKey?: string;
   pagination?: boolean;
-  onRowClick?: (row: TData) => void; // ← Added this prop
+  onRowClick?: (row: TData) => void;
+  onEdit?: (row: TData) => void;
+  onDelete?: (row: TData) => void;
 }
 
 export function ReusableDataTable<TData, TValue>({
@@ -40,7 +40,9 @@ export function ReusableDataTable<TData, TValue>({
   data,
   searchKey,
   pagination = true,
-  onRowClick, // ← Added this parameter
+  onRowClick,
+  onEdit,
+  onDelete,
 }: ReusableDataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -83,18 +85,18 @@ export function ReusableDataTable<TData, TValue>({
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  );
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
+                {/* Actions column header - ALWAYS VISIBLE */}
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             ))}
           </TableHeader>
@@ -104,12 +106,12 @@ export function ReusableDataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  onClick={() => onRowClick?.(row.original)} // ← Added click handler
+                  onClick={() => onRowClick?.(row.original)}
                   className={
                     onRowClick
                       ? "cursor-pointer hover:bg-muted/50 transition-colors"
                       : ""
-                  } // ← Added styling
+                  }
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -119,24 +121,42 @@ export function ReusableDataTable<TData, TValue>({
                       )}
                     </TableCell>
                   ))}
-                  {/* Actions */}
-                  <div className="flex m-3 gap-2">
-                    <div>
-                      <Pen />
+                  {/* Actions column - ALWAYS VISIBLE */}
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit?.(row.original);
+                        }}
+                        className="h-8 w-8"
+                      >
+                        <Pen className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete?.(row.original);
+                        }}
+                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <div className="text-red-500 hover:text-red-700 cursor-pointer size-1">
-                      <Trash2 />
-                    </div>
-                  </div>
+                  </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={columns.length + 1}
                   className="h-24 text-center"
                 >
-                  fetching data...
+                  No results found.
                 </TableCell>
               </TableRow>
             )}

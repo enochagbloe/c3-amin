@@ -4,7 +4,7 @@ import AuthForm from "@/components/forms/AuthForms";
 import { signInWithCredentials } from "@/lib/actions/auth.actions";
 import { SignInSchema } from "@/lib/validations";
 
-const SignInPage = () => {
+const SignInPage =  () => {
   return (
     <main>
       <h1 className="text-2xl font-bold">Welcome Back</h1>

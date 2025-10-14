@@ -1,9 +1,14 @@
 "use server";
-import { ExpenseTracker } from "../generated/prisma";
+import { revalidatePath } from "next/cache";
+import { ExpenseTracker, Status } from "../generated/prisma";
 import action from "../handler/action";
 import handleError from "../handler/error";
 import prisma from "../prisma";
-import { ExpenseTrackerInputSchema, GetExpenseSchema } from "../validations";
+import {
+  ExpenseTrackerInputSchema,
+  GetExpenseSchema,
+  UpdateExpenseStatusSchema,
+} from "../validations";
 import { auth } from "@/auth";
 
 export async function createBudgetExpense(
@@ -49,7 +54,7 @@ export async function getAllExpense(
   const validationResult = await action({
     params,
     schema: GetExpenseSchema,
-    authorize: false,
+    authorize: true,
     useMongo: false,
   });
 
@@ -71,6 +76,43 @@ export async function getAllExpense(
       };
     }
     return { success: true, data: JSON.parse(JSON.stringify(expense)) };
+  } catch (error) {
+    return handleError(error) as ErrorResponse;
+  }
+}
+
+// Action for Approve or Reject Expense
+export async function updateExpenseStatus(
+  params: updateExpenseStatusParams
+): Promise<ActionResponse<ExpenseTracker>> {
+  const validationResult = await action({
+    params,
+    schema: UpdateExpenseStatusSchema,
+    authorize: true,
+    useMongo: false,
+  });
+  if (validationResult instanceof Error)
+    return handleError(validationResult) as ErrorResponse;
+  const { id, status } = validationResult.params!;
+  try {
+    // check if the expense exists
+    const existingExpense = await prisma.expenseTracker.findUnique({
+      where: { id },
+    });
+
+    if (!existingExpense) {
+      return {
+        success: false,
+        error: { message: "Expense not found.", details: {} },
+      };
+    }
+    const updatedExpense = await prisma.expenseTracker.update({
+      where: { id },
+      data: { status: status as Status },
+    });
+    revalidatePath("/expenses");
+
+    return { success: true, data: updatedExpense };
   } catch (error) {
     return handleError(error) as ErrorResponse;
   }

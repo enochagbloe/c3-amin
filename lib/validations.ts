@@ -99,16 +99,12 @@ export const ExpenseTrackerInputSchema = z.object({
     .min(2, { message: "Name must be at least 2 characters." })
     .max(100, { message: "Name cannot exceed 100 characters." }),
 
-  amount: z
-    .string()
-    .min(1, "Amount is required")
-    // .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
-    //   message: "Amount must be a positive number.",
-    // })
-    // .transform((val) => parseFloat(val))
-    ,
-
-  status: z.enum(["pending", "approved", "failed"]).optional(),
+  amount: z.string().min(1, "Amount is required"),
+  // .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+  //   message: "Amount must be a positive number.",
+  // })
+  // .transform((val) => parseFloat(val))
+  status: z.enum(["pending", "approved", "rejected"]).optional(),
 
   date: z.preprocess(
     (val) => {
@@ -125,6 +121,13 @@ export const ExpenseTrackerInputSchema = z.object({
     .max(200, { message: "Description cannot exceed 200 characters." })
     .optional()
     .or(z.literal("")),
+});
+
+export const UpdateExpenseStatusSchema = z.object({
+  id: z.string().min(1, "Expense ID is required"),
+  status: z.enum(["approved", "rejected"], {
+    message: "Status must be either 'approved' or 'rejected'",
+  }),
 });
 
 export const PaginationSearchParamsSchema = z.object({
