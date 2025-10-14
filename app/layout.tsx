@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { SessionProvider } from "next-auth/react";
 import { auth } from "@/auth";
+import { Toaster } from "sonner"; // ✅ add this
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
 
 const RootLayout = async ({ children }: { children: React.ReactNode }) => {
   const session = await auth();
-  
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -36,6 +37,8 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
             disableTransitionOnChange
           >
             {children}
+            {/* ✅ Toaster must be inside the client-side context */}
+            <Toaster richColors position="top-right" />
           </ThemeProvider>
         </SessionProvider>
       </body>

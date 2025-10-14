@@ -11,18 +11,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { updateExpenseStatus } from "@/lib/actions/budgetTracker.action";
-import { useTransition } from "react";
 import { toast } from "sonner";
-//import { updateExpenseStatus } from "@/lib/actions/budgetTracker.action";
-// import router from "next/router";
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   isApprove?: boolean;
   id: string;
+  alreadyApproved?: boolean;
 };
-const ApproveDialog = ({ open, onOpenChange, isApprove, id}: Props) => {
+const ApproveDialog = ({ open, onOpenChange, isApprove, id, alreadyApproved }: Props) => {
   // const [pending, setTransition] = useTransition();
   const handleApprovals = async () => {
     try {
@@ -33,13 +31,15 @@ const ApproveDialog = ({ open, onOpenChange, isApprove, id}: Props) => {
 
       if (res.success) {
         onOpenChange(false); // Close dialog
-        alert(`Expense ${isApprove ? "approved" : "rejected"} successfully!`);
+        toast.success(
+          `Expense ${isApprove ? "approved" : "rejected"} successfully!`
+        );
       } else {
-        alert(res.error?.message || "Something went wrong");
+        toast.error(res.error?.message || "Something went wrong");
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to update expense. Please try again.");
+      toast.error("Failed to update expense. Please try again.");
     }
   };
 
@@ -57,7 +57,7 @@ const ApproveDialog = ({ open, onOpenChange, isApprove, id}: Props) => {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleApprovals}>
+          <AlertDialogAction disabled={alreadyApproved} onClick={handleApprovals}>
             Continue
           </AlertDialogAction>
         </AlertDialogFooter>

@@ -53,12 +53,14 @@ export default function ExpenseDetailsClient({
         onOpenChange={setOpenApprove}
         isApprove={true}
         id={expensesData.id}
+        alreadyApproved={status === "approved"}
       />
       <ApproveDialog
         open={openReject}
         onOpenChange={setOpenReject}
         isApprove={false}
         id={expensesData.id}
+        alreadyApproved={status === "approved" ? true : status === "rejected"}
       />
 
       <div className="flex justify-between mb-14">
