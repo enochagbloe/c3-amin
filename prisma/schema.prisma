@@ -29,5 +29,5 @@ model ExpenseTracker {
 enum Status {
   pending
   approved
-  failed
+  rejected
 }

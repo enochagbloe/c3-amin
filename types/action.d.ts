@@ -22,8 +22,13 @@ interface createBudgetExpense {
   name: string;
   amount: string;
   date: Date;
-  status?: "pending" | "approved" | "failed";
+  status?: "pending" | "approved" | "rejected";
   description?: string;
+}
+
+interface updateExpenseStatusParams {
+  id: string;
+  status?: "approved" | "rejected" | "pending";
 }
 
 // export interface UpdateExpenseParams {
@@ -31,6 +36,6 @@ interface createBudgetExpense {
 //   name?: string
 //   amount?: string
 //   date?: Date
-//   status?: "pending" | "failed" | "success"
+//   status?: "pending" | "rejected" | "success"
 //   description?: string
 // }

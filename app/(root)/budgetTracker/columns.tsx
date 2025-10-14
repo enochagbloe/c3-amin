@@ -7,7 +7,7 @@ export type Payment = {
   id: string;
   name: string;
   amount: string;
-  status: "pending" | "approved" | "failed";
+  status: "pending" | "approved" | "rejected";
   date: string;
   description: string;
   author?: string;

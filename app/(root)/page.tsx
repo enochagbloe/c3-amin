@@ -3,12 +3,12 @@ import { redirect } from "next/navigation";
 import React from "react";
 
 interface SearchParams {
-  searchParams: Promise<{ [key: string]: string | number | boolean }>;
+  searchParams: Promise<{ [key: string]: string }>;
 }
-
-const MainContent = async ({ searchParams }: { searchParams: SearchParams }) => {
-  const session =  await auth()
-  if(!session) return redirect("/sign-in");
+const MainContent = async ({ searchParams }: SearchParams) => {
+  const session = await auth();
+  console.log("Session: ", session);
+  if (!session) return redirect("/sign-in");
   return (
     <main className="">
       <div className="">
