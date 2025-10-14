@@ -80,7 +80,7 @@ export default function ExpenseDetailsClient({
               Approve
             </Button>
             <Button
-              variant="outline"
+              variant="destructive"
               className="hover:cursor-pointer"
               onClick={() => setOpenReject(true)}
             >
