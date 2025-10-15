@@ -44,6 +44,7 @@ export default function ExpenseDetailsClient({
 
   const handleBack = () => {
     router.back();
+    router.refresh();
   };
 
   return (

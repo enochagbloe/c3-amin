@@ -117,3 +117,37 @@ export async function updateExpenseStatus(
     return handleError(error) as ErrorResponse;
   }
 }
+
+//Action to Delete Expense
+export async function deleteExpense(
+  params: GetExpenseParams
+): Promise<ActionResponse<ExpenseTracker>> {
+  const validationResult = await action({
+    params,
+    schema: GetExpenseSchema,
+    authorize: true,
+    useMongo: false,
+  });
+  if (validationResult instanceof Error)
+    return handleError(validationResult) as ErrorResponse;
+  const { expensesId } = validationResult.params!;
+  try {
+    const existingExpense = await prisma.expenseTracker.findUnique({
+      where: { id: expensesId },
+    });
+    if (!existingExpense) {
+      return {
+        success: false,
+        error: { message: "Expense not found.", details: {} },
+      };
+    }
+    const deletedExpense = await prisma.expenseTracker.delete({
+      where: { id: expensesId },
+    });
+    return { success: true, data: deletedExpense };
+  } catch (error) {
+    return handleError(error) as ErrorResponse;
+  }
+}
+
+//Action to Edit Expense

@@ -30,6 +30,9 @@ interface updateExpenseStatusParams {
   id: string;
   status?: "approved" | "rejected" | "pending";
 }
+interface GetExpenseParams {
+  expensesId: string;
+}
 
 // export interface UpdateExpenseParams {
 //   id: string
