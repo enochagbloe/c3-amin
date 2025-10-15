@@ -44,6 +44,7 @@ export default function ExpenseDetailsClient({
 
   const handleBack = () => {
     router.back();
+    router.refresh();
   };
 
   return (
@@ -53,12 +54,14 @@ export default function ExpenseDetailsClient({
         onOpenChange={setOpenApprove}
         isApprove={true}
         id={expensesData.id}
+        alreadyApproved={status === "approved"}
       />
       <ApproveDialog
         open={openReject}
         onOpenChange={setOpenReject}
         isApprove={false}
         id={expensesData.id}
+        alreadyApproved={status === "approved" ? true : status === "rejected"}
       />
 
       <div className="flex justify-between mb-14">
@@ -78,7 +81,7 @@ export default function ExpenseDetailsClient({
               Approve
             </Button>
             <Button
-              variant="outline"
+              variant="destructive"
               className="hover:cursor-pointer"
               onClick={() => setOpenReject(true)}
             >

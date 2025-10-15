@@ -41,6 +41,3 @@ type PaginationSearchParams = {
   sort?: string; // for sorting items
 }
 
-type GetExpenseParams = {
-  expensesId: string;
-}
