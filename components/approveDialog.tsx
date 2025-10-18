@@ -20,7 +20,13 @@ type Props = {
   id: string;
   alreadyApproved?: boolean;
 };
-const ApproveDialog = ({ open, onOpenChange, isApprove, id, alreadyApproved }: Props) => {
+const ApproveDialog = ({
+  open,
+  onOpenChange,
+  isApprove,
+  id,
+  alreadyApproved,
+}: Props) => {
   // const [pending, setTransition] = useTransition();
   const handleApprovals = async () => {
     try {
@@ -57,7 +63,10 @@ const ApproveDialog = ({ open, onOpenChange, isApprove, id, alreadyApproved }: P
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction disabled={alreadyApproved} onClick={handleApprovals}>
+          <AlertDialogAction
+            disabled={alreadyApproved}
+            onClick={handleApprovals}
+          >
             Continue
           </AlertDialogAction>
         </AlertDialogFooter>

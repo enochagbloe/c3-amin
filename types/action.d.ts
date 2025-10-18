@@ -34,6 +34,13 @@ interface GetExpenseParams {
   expensesId: string;
 }
 
+interface MakePaymentParams {
+  expenseId: string;
+  amount: string;
+  paymentMethod: "cash" | "bank_transfer" | "mobile_payment"; 
+  // Add other relevant fields as needed
+}
+
 // export interface UpdateExpenseParams {
 //   id: string
 //   name?: string

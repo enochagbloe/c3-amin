@@ -144,3 +144,84 @@ export const PaginationSearchParamsSchema = z.object({
 export const GetExpenseSchema = z.object({
   expensesId: z.string().min(1, { message: "Expense ID is required." }),
 });
+
+/**
+ * Payment Schema with Discriminated Union
+ * This allows conditional validation based on payment method
+ */
+
+// Base fields that are common to both payment methods
+const basePaymentFields = {
+  date: z.preprocess(
+    (val) => {
+      if (typeof val === "string") return new Date(val);
+      return val;
+    },
+    z.date({
+      message: "Date is required.",
+    })
+  ),
+  description: z
+    .string()
+    .max(500, { message: "Description cannot exceed 500 characters." })
+    .optional()
+    .or(z.literal("")),
+};
+
+/**
+ * Mobile Money Payment Schema
+ */
+export const MobileMoneyPaymentSchema = z.object({
+  paymentMethod: z.literal('mobile'),
+  mobileNetwork: z.string().min(1, { message: "Please select a network" }),
+  recipientName: z
+    .string()
+    .min(2, { message: "Recipient name must be at least 2 characters" })
+    .max(100, { message: "Recipient name cannot exceed 100 characters" })
+    .regex(/^[a-zA-Z\s'-]+$/, {
+      message: "Name can only contain letters, spaces, hyphens, and apostrophes",
+    }),
+  phoneNumber: z
+    .string()
+    .regex(/^0\d{9}$/, {
+      message: "Please enter a valid 10-digit phone number starting with 0",
+    }),
+  ...basePaymentFields,
+});
+
+/**
+ * Bank Transfer Payment Schema
+ */
+export const BankTransferPaymentSchema = z.object({
+  paymentMethod: z.literal('bank'),
+  accountName: z
+    .string()
+    .min(2, { message: "Account name must be at least 2 characters" })
+    .max(100, { message: "Account name cannot exceed 100 characters" })
+    .regex(/^[a-zA-Z\s'-]+$/, {
+      message: "Account name can only contain letters, spaces, hyphens, and apostrophes",
+    }),
+  bankName: z.string().min(1, { message: "Please select a bank" }),
+  accountNumber: z
+    .string()
+    .regex(/^\d{10,16}$/, {
+      message: "Account number must be 10-16 digits",
+    }),
+  ...basePaymentFields,
+});
+
+/**
+ * Combined Payment Schema using discriminated union
+ * This is the main schema you'll pass to your ReusableDialog
+ */
+export const PaymentInputSchema = z.discriminatedUnion('paymentMethod', [
+  MobileMoneyPaymentSchema,
+  BankTransferPaymentSchema,
+]);
+
+/**
+ * Type exports for TypeScript
+ */
+export type MobileMoneyPayment = z.infer<typeof MobileMoneyPaymentSchema>;
+export type BankTransferPayment = z.infer<typeof BankTransferPaymentSchema>;
+export type PaymentInput = z.infer<typeof PaymentInputSchema>;

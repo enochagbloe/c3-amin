@@ -7,7 +7,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import { useForm, SubmitHandler, FieldValues, Field } from "react-hook-form";
+import { useForm, SubmitHandler, FieldValues } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import z, { ZodType } from "zod";
 import { toast } from "sonner";
@@ -38,7 +38,7 @@ interface FieldConfig {
     options?: FieldOption[] | any;
     placeholder?: string;
     isLoading?: boolean | true;
-  }
+  };
 }
 
 interface ReusableDialogProps<T extends FieldValues> {
@@ -75,7 +75,7 @@ export function ReusableDialog<T extends FieldValues>({
         onOpenChange(false);
         form.reset();
       }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       toast.error("An error occurred while submitting the form");
     }
@@ -84,25 +84,24 @@ export function ReusableDialog<T extends FieldValues>({
   // Helper function to safely format date
   const formatDateSafely = (date: any) => {
     if (!date) return null;
-    
+
     // Handle string dates
-    if (typeof date === 'string') {
+    if (typeof date === "string") {
       const parsedDate = new Date(date);
       return isNaN(parsedDate.getTime()) ? null : format(parsedDate, "PPP");
     }
-    
+
     // Handle Date objects
     if (date instanceof Date) {
       return isNaN(date.getTime()) ? null : format(date, "PPP");
     }
-    
+
     return null;
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-      </DialogTrigger>
+      <DialogTrigger asChild></DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -152,7 +151,7 @@ export function ReusableDialog<T extends FieldValues>({
                               initialFocus
                               disabled={(date) =>
                                 // Optional: disable future dates
-                                // date > new Date() || 
+                                // date > new Date() ||
                                 date < new Date("1900-01-01")
                               }
                             />
