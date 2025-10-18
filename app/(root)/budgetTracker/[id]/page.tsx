@@ -3,6 +3,7 @@ import { ExpenseTracker } from "@/lib/generated/prisma";
 import { notFound } from "next/navigation";
 import React from "react";
 import ExpenseDetailsClient from "./ExpenseDetailsClient";
+import { auth } from "@/auth";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -10,6 +11,8 @@ interface RouteParams {
 
 const ExpenseDetailsPage = async ({ params }: RouteParams) => {
   const { id } = await params;
+  const session = await auth();
+  const user = session?.user?.name;
 
   if (!id) {
     return <div>No Expense ID provided</div>;
@@ -22,7 +25,7 @@ const ExpenseDetailsPage = async ({ params }: RouteParams) => {
 
   const expensesData = response.data as ExpenseTracker;
 
-  return <ExpenseDetailsClient expensesData={expensesData} />;
+  return <ExpenseDetailsClient expensesData={expensesData} user={user ?? ""} />;
 };
 
 export default ExpenseDetailsPage;

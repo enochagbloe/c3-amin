@@ -14,19 +14,24 @@ import { Calendar, DollarSign, FileText, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExpenseTracker } from "@/lib/generated/prisma";
 import ApproveDialog from "@/components/approveDialog";
+import MakePaymentDialog from "@/components/make-paymentDialog";
+import { toast } from "sonner";
 
 interface ExpenseDetailsClientProps {
   expensesData: ExpenseTracker;
+  user: string;
 }
 
 export default function ExpenseDetailsClient({
   expensesData,
+  user,
 }: ExpenseDetailsClientProps) {
   const router = useRouter();
   const { name, amount, status, date, description } = expensesData;
 
   const [openApprove, setOpenApprove] = useState(false);
   const [openReject, setOpenReject] = useState(false);
+  const [openMakePayment, setOpenMakePayment] = useState(false);
 
   // Status variant mapping
   const getStatusVariant = (status: string) => {
@@ -46,9 +51,23 @@ export default function ExpenseDetailsClient({
     router.back();
     router.refresh();
   };
+  const handlePayment = () => {
+    console.log("testing");
+    toast.success("Payment created successfully");
+    router.refresh()
+  };
 
   return (
     <>
+      <div>
+        <button
+          className="text-sm text-slate-500 dark:text-white"
+          onClick={handleBack}
+        >
+          Back
+        </button>
+      </div>
+
       <ApproveDialog
         open={openApprove}
         onOpenChange={setOpenApprove}
@@ -65,12 +84,30 @@ export default function ExpenseDetailsClient({
       />
 
       <div className="flex justify-between mb-14">
-        <button
-          className="text-sm text-slate-500 dark:text-white"
-          onClick={handleBack}
-        >
-          Back
-        </button>
+        {status === "approved" ? (
+          <>
+            {" "}
+            <MakePaymentDialog
+              open={openMakePayment}
+              onOpenChange={setOpenMakePayment}
+              id={expensesData.id}
+              isApprove={false}
+              alreadyApproved={true}
+              onSubmit={handlePayment}
+            />
+          </>
+        ) : (
+          <>
+            <MakePaymentDialog
+              open={openMakePayment}
+              onOpenChange={setOpenMakePayment}
+              isApprove={false}
+              alreadyApproved={false}
+              id={expensesData.id}
+              onSubmit={handlePayment}
+            />
+          </>
+        )}
         <div className="ml-auto gap-4 p-2">
           <div className="flex gap-2">
             <Button
@@ -192,6 +229,8 @@ export default function ExpenseDetailsClient({
             </Card>
           )}
         </div>
+        {status === "approved" ? <p>Approved by: {user}</p> : null}
+        {status === "rejected" ? <p>Rejected by: {user}</p> : null}
       </div>
     </>
   );
