@@ -145,6 +145,10 @@ export const GetExpenseSchema = z.object({
   expensesId: z.string().min(1, { message: "Expense ID is required." }),
 });
 
+export const getApprovedExpensesSchema = z.object({
+  status: z.enum(["approved"]).optional(),
+});
+
 /**
  * Payment Schema with Discriminated Union
  * This allows conditional validation based on payment method
