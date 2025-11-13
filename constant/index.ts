@@ -52,6 +52,12 @@ export const sidebarLinks = [
   },
   {
     icon: FileText,
+    label: "Approved Expenses",
+    route: "/approvedBudgets",
+    badge: null,
+  },
+  {
+    icon: FileText,
     label: "Reports",
     route: "#",
     badge: null,

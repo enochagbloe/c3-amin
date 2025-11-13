@@ -30,6 +30,10 @@ interface updateExpenseStatusParams {
   id: string;
   status?: "approved" | "rejected" | "pending";
 }
+interface getApprovedExpensesParams {
+  id: string;
+  status?: "approved" | "rejected" | "pending";
+}
 interface GetExpenseParams {
   expensesId: string;
 }
@@ -37,7 +41,7 @@ interface GetExpenseParams {
 interface MakePaymentParams {
   expenseId: string;
   amount: string;
-  paymentMethod: "cash" | "bank_transfer" | "mobile_payment"; 
+  paymentMethod: "cash" | "bank_transfer" | "mobile_payment";
   // Add other relevant fields as needed
 }
 

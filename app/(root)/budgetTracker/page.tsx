@@ -69,7 +69,7 @@ const BudgetTracker = () => {
           name: "",
           amount: "", // Changed from 0 to "" to match your schema transformation
           status: "pending", // Add default status
-          date: new Date().toISOString().split("T")[0], // YYYY-MM-DD format
+          date: new Date().toISOString(), // YYYY-MM-DD format
           description: "",
           // Remove author if it's not in your schema
           // author: "",
