@@ -30,7 +30,7 @@ export const sidebarLinks = [
   {
     icon: Users,
     label: "Users",
-    route: "#",
+    route: "/users",
     badge: "124",
   },
   {
