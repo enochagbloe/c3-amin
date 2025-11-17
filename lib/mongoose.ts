@@ -35,7 +35,7 @@ const dbConnect = async (): Promise<Mongoose> => {
     // If a connection promise is already in progress, wait for it to resolve
     if (!cache.promise) {
         cache.promise = mongoose.connect(MONGODB_URI, {
-            dbName: "devflow",
+            dbName: "C3-ERP",
         })
         .then((result) => {
             logger.info('MongoDB connected successfully');

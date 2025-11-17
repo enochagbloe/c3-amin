@@ -80,7 +80,7 @@ const ModernPromptUI: React.FC = () => {
   const handleSubmit = async () => {
     if (!prompt.trim() && attachedFiles.length === 0) return;
 
-    // 👇 Immediately log user's message (for now, console)
+    //Immediately log user's message (for now, console)
     console.log("User prompt:", prompt);
     // Before sending
     setMessages((prev) => [...prev, { role: "user", content: prompt }]);
@@ -105,7 +105,7 @@ const ModernPromptUI: React.FC = () => {
       setIsLoading(false);
     }
 
-    // 👇 Reset input and attachments
+    // Reset input and attachments
     setPrompt("");
     setAttachedFiles([]);
   };

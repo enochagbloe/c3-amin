@@ -29,9 +29,25 @@ export const SignUpSchema = z.object({
       message: "Name can only contain letters and spaces.",
     }),
   email: z
-    .string()
-    .min(1, { message: "Email is required." })
-    .email({ message: "Please provide a valid email address." }),
+  .string()
+  .min(1, { message: "Email is required." })
+  .email({ message: "Please provide a valid email address." })
+  .refine((value) => {
+    const domain = value.split("@")[1];
+    const commonTypos = [
+      "gamil.com",
+      "gnail.com",
+      "gmial.com",
+      "gmaik.com",
+      "gmaol.com",
+      "gmail.co",
+    ];
+
+    // If domain is a common typo, reject it
+    return !commonTypos.includes(domain);
+  }, {
+    message: "This email looks incorrect. Did you mean @gmail.com?",
+  }),
 
   password: z
     .string()

@@ -1,3 +1,4 @@
+ 
 "use client";
 
 import AuthForm from "@/components/forms/AuthForms";
@@ -5,7 +6,6 @@ import { signUpWithCredentials } from "@/lib/actions/auth.actions";
 import { SignUpSchema } from "@/lib/validations";
 
 const SignUp = () => {
-
   return (
     <main className="">
       <h1 className="text-2xl font-bold">Sign Up</h1>

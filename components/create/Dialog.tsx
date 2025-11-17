@@ -5,7 +5,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "../ui/dialog";
 import { useForm, SubmitHandler, FieldValues } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,7 +24,7 @@ import { Input } from "../ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 
 interface FieldOption {
   label: string;
@@ -37,7 +36,6 @@ interface FieldConfig {
     type: string;
     options?: FieldOption[] | any;
     placeholder?: string;
-    isLoading?: boolean | true;
   };
 }
 
@@ -51,6 +49,7 @@ interface ReusableDialogProps<T extends FieldValues> {
   children?: React.ReactNode;
   dialogName: string;
   fieldConfig?: FieldConfig;
+  isLoading?: boolean
 }
 
 export function ReusableDialog<T extends FieldValues>({
@@ -61,6 +60,7 @@ export function ReusableDialog<T extends FieldValues>({
   defaultValues,
   onSubmit,
   dialogName,
+  isLoading,
 }: ReusableDialogProps<T>) {
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
@@ -101,7 +101,6 @@ export function ReusableDialog<T extends FieldValues>({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild></DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -171,8 +170,19 @@ export function ReusableDialog<T extends FieldValues>({
                 )}
               />
             ))}
-            <Button type="submit" className="mt-4 w-full hover:pointer">
-              Submit
+           <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Submit"
+              )}
             </Button>
           </form>
         </Form>

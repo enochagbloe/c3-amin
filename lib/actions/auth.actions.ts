@@ -8,6 +8,7 @@ import handleError from "../handler/error";
 import { NotFoundError } from "../http.error";
 import { SignInSchema, SignUpSchema } from "../validations";
 import bcrypt from "bcryptjs"
+import dbConnect from "../mongoose";
 
 
 export async function signUpWithCredentials(
@@ -25,6 +26,7 @@ export async function signUpWithCredentials(
 
   const { name, username, email, password, image } = validationResult.params!;
 
+  await dbConnect()
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
@@ -78,11 +80,12 @@ export async function signUpWithCredentials(
     if (!newAccount) {
       throw new Error("Failed to create account");
     }
-
     await session.commitTransaction();
     return { success: true };
   } catch (error) {
+    if (session.inTransaction()) {
     await session.abortTransaction();
+  }
     return handleError(error) as ErrorResponse;
   } finally {
     await session.endSession();
