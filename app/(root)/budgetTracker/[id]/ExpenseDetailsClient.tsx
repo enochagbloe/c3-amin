@@ -16,6 +16,7 @@ import { ExpenseTracker } from "@/lib/generated/prisma";
 import ApproveDialog from "@/components/approveDialog";
 import MakePaymentDialog from "@/components/make-paymentDialog";
 import { toast } from "sonner";
+import ApprovalTimeline from "@/components/ui/timeline";
 
 interface ExpenseDetailsClientProps {
   expensesData: ExpenseTracker;
@@ -228,9 +229,9 @@ export default function ExpenseDetailsClient({
               </CardContent>
             </Card>
           )}
+        {status === "approved" ? <ApprovalTimeline status={status} user={user} /> : null}
+        {status === "rejected" ? <ApprovalTimeline status={status} user={user}/>: null}
         </div>
-        {status === "approved" ? <p>Approved by: {user}</p> : null}
-        {status === "rejected" ? <p>Rejected by: {user}</p> : null}
       </div>
     </>
   );
