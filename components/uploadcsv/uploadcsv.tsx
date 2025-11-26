@@ -1,9 +1,9 @@
 import handleError from "@/lib/handler/error";
-import { useRouter } from "next/navigation";
+//import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function UploadCSV() {
-  const router = useRouter();
+  //const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
