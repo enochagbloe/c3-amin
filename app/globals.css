@@ -112,6 +112,12 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@keyframes shimmer {
+  0% { opacity: 0.3; }
+  50% { opacity: 1; }
+  100% { opacity: 0.3; }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
