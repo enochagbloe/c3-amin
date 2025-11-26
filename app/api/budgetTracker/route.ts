@@ -3,13 +3,13 @@ import handleError from "@/lib/handler/error";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-const allowedStatuses = ["approved", "pending", "rejected"] as const; // ✅ valid enum values
+const allowedStatuses = ["approved", "pending", "rejected"] as const; // valid enum values
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
 
-  // ✅ Only use status if it's truly valid
+  // Only use status if it's truly valid
   const whereCondition = allowedStatuses.includes(status as any)
     ? { status: status as (typeof allowedStatuses)[number] }
     : undefined;

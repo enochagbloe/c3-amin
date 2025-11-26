@@ -16,8 +16,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import handleError from "@/lib/handler/error";
+import ThinkingAnimation from "@/components/ui/thinking-animation";
 
-const ModernPromptUI: React.FC = () => {
+const ModernPromptUI = () => {
   const [messages, setMessages] = useState<
     { role: "user" | "assistant"; content: string }[]
   >([]);
@@ -35,6 +36,7 @@ const ModernPromptUI: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const [typingMessageIndex, setTypingMessageIndex] = useState<number | null>(null);
 
   const shortcuts = [
     {
@@ -74,6 +76,30 @@ const ModernPromptUI: React.FC = () => {
     setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const typeMessage = async(text:string)=>{
+    const words =text.split(' ')
+    let currentText = ''
+
+    setMessages((prev) => [...prev, {role: "assistant", content: ""}]);
+    const messageIndex = messages.length + 1
+    setTypingMessageIndex(messageIndex);
+
+     for (let i = 0; i < words.length; i++) {
+     currentText += (i > 0 ? ' ' : '') + words[i];
+    
+    setMessages((prev) => {
+      const newMessages = [...prev];
+      newMessages[messageIndex] = { role: "assistant", content: currentText };
+      return newMessages;
+    });
+    
+    await new Promise(resolve => setTimeout(resolve, 50)); // 50ms per word
+  }
+  
+  setTypingMessageIndex(null); 
+  }
+  
+
   {
     /* Ai prompt on submit */
   }
@@ -96,7 +122,8 @@ const ModernPromptUI: React.FC = () => {
       const result = await response.json()
       const aiReply =result.data || "sorry i didn't catch that.";
       // After AI reply
-      setMessages((prev) => [...prev, { role: "assistant", content: aiReply }]);
+      // setMessages((prev) => [...prev, { role: "assistant", content: aiReply }]);
+      await typeMessage(aiReply)
 
       console.log("AI reply:", aiReply);
     } catch (err) {
@@ -144,13 +171,17 @@ const ModernPromptUI: React.FC = () => {
                   className={`px-4 py-2 rounded-2xl max-w-[75%] ${
                     msg.role === "user"
                       ? "bg-violet-600 text-white"
-                      : "bg-gray-100 text-gray-800"
+                      : "text-gray-800"
                   }`}
                 >
                   {msg.content}
+                  {idx === typingMessageIndex && (
+                    <span className="inline-block w-0.5 h-4 bg-gray-800 ml-1 animate-pulse" />
+                  )}
                 </div>
               </div>
             ))}
+            {isLoading && <ThinkingAnimation/>}
             <div ref={messagesEndRef} />
           </div>
         </div>
