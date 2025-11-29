@@ -65,14 +65,31 @@ export const SignUpSchema = z.object({
     }),
 });
 
+export const getAllUsersSchema = z.object({
+  userId: z.string().min(1, { message: "Expense ID is required." }),
+})
+
 export const UserSchema = z.object({
+  staffId : z.string().min(1, { message: "User ID is required." }),
   name: z.string().min(1, { message: "Name is required." }),
   username: z
     .string()
     .min(3, { message: "Username must be at least 3 characters long." }),
+  firstName: z
+    .string()
+    .min(1, { message: "First name must be at least 1 character long." })  
+    .optional(),
+  lastName: z
+    .string()
+    .min(1, { message: "Last name must be at least 1 character long." }) 
+    .optional(),
   email: z.string().email({ message: "Please provide a valid email address." }),
   bio: z.string().optional(),
-  Image: z
+  phone: z.string().optional(),
+  city: z.string().optional(),
+  status: z.enum(["active", "inactive"]).optional(),
+  role: z.enum(["admin", "manager", "member", "viewer"]).optional(),
+  image: z  
     .string()
     .url({ message: "Please provide a valid image URL." })
     .optional(),

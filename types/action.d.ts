@@ -38,6 +38,31 @@ interface GetExpenseParams {
   expensesId: string;
 }
 
+interface User {
+  id: string;
+  staffId: string;
+  name: string;
+  username: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  bio?: string;
+  phone?: string;
+  city?: string;
+  status?: "active" | "inactive";
+  role?: "admin" | "manager" | "member" | "viewer";
+  image?: string;
+  location?: string;
+  portfolio?: string;
+  reputation?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface getAllUsers {
+  userId: string
+}
+
 interface MakePaymentParams {
   expenseId: string;
   amount: string;
