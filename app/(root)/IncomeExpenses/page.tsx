@@ -8,6 +8,7 @@ import { CreateIncome } from "@/lib/actions/income.actions";
 import { toast } from "sonner";
 import { IncomeDialog } from "@/components/create/IncomeDialog";
 import { createIncomeSchema } from "@/lib/validations";
+import { Loading } from "@/components/ui/loaading-spinner";
 
 
 // Sample data matching the Payment type
@@ -111,8 +112,7 @@ const IncomeExpenses = () => {
       <div className="container mx-auto py-10">
         {isFetching ? (
           <div className="flex justify-center items-center h-64">
-            <p>Loading expenses...</p>
-            {/* Or your spinner component */}
+              <Loading name="Income Expenses"/>
           </div>
         ) : (
           <ReusableDataTable
