@@ -4,15 +4,32 @@ import { ValidationError } from "@/lib/http.error";
 import dbConnect from "@/lib/mongoose";
 import {  UserSchema } from "@/lib/validations";
 import { NextResponse } from "next/server";
-
 export async function GET() {
   try {
-    await dbConnect();
-    const user = await User.find();
+    const users = await User.find().lean();
+    
+    // Map the data to include 'id' field
+    const formattedUsers = users.map(user => ({
+      id: user._id?.toString(), // Convert MongoDB _id to string id
+      staffId: user.staffId,
+      name: user.name,
+      email: user.email,
+      status: user.status,
+      date: user.createdAt || user.date, // Adjust based on your schema
+      userId: user.userId || user._id?.toString(),
+      role: user.role
+    }));
 
-    return NextResponse.json({ success: true, data: user }, { status: 201 });
+    return NextResponse.json({
+      success: true,
+      data: formattedUsers
+    });
   } catch (error) {
-    return handleError(error, "api") as APIErrorResponse;
+    console.log(error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch users' },
+      { status: 500 }
+    );
   }
 }
 

@@ -11,7 +11,7 @@ datasource db {
 model ExpenseTracker {
   id       String   @id @default(cuid())
   name     String
-  amount  String
+  amount   Float
   date     DateTime @default(now())
   status   Status   @default(pending)
   createdAt DateTime @default(now())
@@ -30,4 +30,47 @@ enum Status {
   pending
   approved
   rejected
+}
+
+model Income {
+  id            String    @id @default(uuid())
+  name          String                
+  userId        String
+  amount        Float
+  source        String
+  description   String?
+  date          DateTime @default(now())
+  createdAt     DateTime              @default(now())
+
+  customValues  IncomeCustomValue[]
+}
+
+model CustomField {
+  id            String                @id @default(uuid())
+  userId        String
+  name          String
+  type          FieldType
+  required      Boolean               @default(false)
+  options       String[] @default([])            // only for SELECT type
+  createdAt     DateTime              @default(now())
+
+  customValues  IncomeCustomValue[]
+}
+
+model IncomeCustomValue {
+  id           String       @id @default(uuid())
+  incomeId     String
+  fieldId      String
+  value        String       // stored as string, parsed in UI
+
+  income       Income       @relation(fields: [incomeId], references: [id])
+  customField  CustomField  @relation(fields: [fieldId], references: [id])
+}
+
+enum FieldType {
+  TEXT
+  NUMBER
+  DATE
+  SELECT
+  TOGGLE
 }

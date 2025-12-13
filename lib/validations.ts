@@ -65,14 +65,31 @@ export const SignUpSchema = z.object({
     }),
 });
 
+export const getAllUsersSchema = z.object({
+  userId: z.string().min(1, { message: "Expense ID is required." }),
+})
+
 export const UserSchema = z.object({
+  staffId : z.string().min(1, { message: "User ID is required." }),
   name: z.string().min(1, { message: "Name is required." }),
   username: z
     .string()
     .min(3, { message: "Username must be at least 3 characters long." }),
+  firstName: z
+    .string()
+    .min(1, { message: "First name must be at least 1 character long." })  
+    .optional(),
+  lastName: z
+    .string()
+    .min(1, { message: "Last name must be at least 1 character long." }) 
+    .optional(),
   email: z.string().email({ message: "Please provide a valid email address." }),
   bio: z.string().optional(),
-  Image: z
+  phone: z.string().optional(),
+  city: z.string().optional(),
+  status: z.enum(["active", "inactive"]).optional(),
+  role: z.enum(["admin", "manager", "member", "viewer"]).optional(),
+  image: z  
     .string()
     .url({ message: "Please provide a valid image URL." })
     .optional(),
@@ -245,3 +262,56 @@ export const PaymentInputSchema = z.discriminatedUnion('paymentMethod', [
 export type MobileMoneyPayment = z.infer<typeof MobileMoneyPaymentSchema>;
 export type BankTransferPayment = z.infer<typeof BankTransferPaymentSchema>;
 export type PaymentInput = z.infer<typeof PaymentInputSchema>;
+
+
+export const FieldTypeEnum = ["TEXT", "NUMBER", "DATE", "SELECT", "TOGGLE"] as const;
+export type FieldType = (typeof FieldTypeEnum)[number];
+
+export const customFieldSchema = z.object({
+  name: z.string().min(1, "Field name is required"),
+  type: z.enum(["TEXT", "NUMBER", "DATE", "SELECT", "TOGGLE"]),
+  required: z.boolean().default(false),
+  options: z.array(z.string()).default([]), // no refine here
+}).superRefine((data, ctx) => {
+  // this runs after the object is parsed
+  if (data.type === "SELECT" && data.options.length === 0) {
+    ctx.addIssue({
+      path: ["options"], // points to the options field
+      message: "Options are required for SELECT type fields",
+      code: z.ZodIssueCode.custom,
+    });
+  }
+});
+
+export const customFieldValueSchema = z.object({
+  fieldId: z.string().uuid(),
+  value: z.union([z.string(), z.number(), z.boolean(), z.date()]),
+});
+
+export const baseIncomeSchema = z.object({
+ name: z
+    .string()
+    .min(2, { message: "Name must be at least 2 characters." })
+    .max(100, { message: "Name cannot exceed 100 characters." }),
+amount: z.string().min(1, "Amount is required"),
+  source: z.string().min(1, "Source is required"),
+  description: z.string().optional(),
+ date: z.preprocess(
+    (val) => {
+      if (typeof val === "string") return new Date(val);
+      return val;
+    },
+    z.date({
+      message: "Date is required.",
+    })
+  ),
+});
+
+export const createIncomeSchema = z.object({
+  ...baseIncomeSchema.shape,
+  customFields: z.array(customFieldValueSchema).optional(),
+});
+
+export const GetIncomeSchema = z.object({
+  incomeId: z.string().min(1, { message: "Expense ID is required." }),
+});

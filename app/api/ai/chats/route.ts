@@ -52,7 +52,7 @@ async function handleQuerySpending(parsed: any) {
     where: { date: { gte: startDate } },
   });
 
-  const total = expenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
+  const total = expenses.reduce((sum, e) => sum + (e.amount), 0);
   const count = expenses.length;
 
   const friendlyReply = count === 0 
