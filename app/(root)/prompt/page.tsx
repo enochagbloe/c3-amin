@@ -156,9 +156,9 @@ const ModernPromptUI = () => {
 
   return (
     <>
-      <div className="h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col">
         {/* Chat Messages - Scrollable */}
-        <div className="flex-1 overflow-x-auto px-4 py-6 scrollbar-hide">
+        <div className="flex-1 overflow-x-auto px-4 scrollbar-hide">
           <div className="max-w-4xl mx-auto space-y-3 pb-4">
             {messages.map((msg, idx) => (
               <div
