@@ -52,7 +52,7 @@ interface ReusableDialogProps<T extends FieldValues> {
   isLoading?: boolean
 }
 
-export function ReusableDialog<T extends FieldValues>({
+export function ExpensesDialog<T extends FieldValues>({
   open,
   onOpenChange,
   title,

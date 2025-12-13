@@ -98,6 +98,7 @@ const UserDetailClientPage = ({
                     <TabsTrigger value="transactions">Transactions</TabsTrigger>
                     <TabsTrigger value="statements">Statements</TabsTrigger>
                   </TabsList>
+                  
                   <TabsContent value="general" className="mt-6">
                     <div className="space-y-6">
                       {/* Name Fields */}

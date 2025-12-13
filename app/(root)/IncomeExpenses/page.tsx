@@ -2,21 +2,17 @@
 "use client";
 import * as React from "react";
 import { columns, Payment } from "./columns";
-import { ExpensesDialog } from "@/components/create/Dialog";
-import { ExpenseTrackerInputSchema } from "@/lib/validations";
 import { ReusableDataTable } from "@/components/ReuableDataTable";
 import { useRouter } from "next/navigation";
-import { createBudgetExpense } from "@/lib/actions/budgetTracker.action";
+import { CreateIncome } from "@/lib/actions/income.actions";
 import { toast } from "sonner";
-import UploadCSV from "@/components/uploadcsv/uploadcsv";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import IncomeExpenses from "../IncomeExpenses/page";
-import { motion } from "framer-motion"
+import { IncomeDialog } from "@/components/create/IncomeDialog";
+import { createIncomeSchema } from "@/lib/validations";
 
 
 // Sample data matching the Payment type
 
-const BudgetTracker = () => {
+const IncomeExpenses = () => {
   const [open, setOpen] = React.useState(false);
   const [tableData, setTableData] = React.useState<Payment[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);        // for form submission
@@ -29,7 +25,7 @@ const BudgetTracker = () => {
     const fetchData = async () => {
       try {
         setIsFetching(true);
-        const result = await fetch("/api/budgetTracker").then((res) => res.json());
+        const result = await fetch("/api/incomeTracker").then((res) => res.json());
         setTableData(result.data || []);
       } catch (error) {
         toast.error("Failed to load expenses");
@@ -44,7 +40,7 @@ const BudgetTracker = () => {
   const handleSubmit = async (formData: any) => {
     setIsLoading(true);
     try {
-      const result = await createBudgetExpense(formData);
+      const result = await CreateIncome(formData);
 
       if (result.success) {
         // Add the new expense optimistically
@@ -71,55 +67,33 @@ const BudgetTracker = () => {
     <main>
       <div className="items-center justify-center">
       <div>
-        <Tabs defaultValue="income">
-          <TabsList>
-           <TabsTrigger value="income">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-                >
-                  Income
-                </motion.button>
-           </TabsTrigger>
-           <TabsTrigger value="Budget">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-                >
-                  Budget
-                </motion.button>
-
-           </TabsTrigger>
-          </TabsList>
-        <TabsContent value="Budget">
-
-
-      {/* Budget Tab*/}
+        {/* Budget Tab*/}
       <section className="flex justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Budget Tracker</h1>
+            <h1 className="text-2xl font-bold">Income Tracker</h1>
           </div>
 
-          <UploadCSV/>
+          {/*<UploadCSV/>*/}
       </section>
+
         <button
           className="px-4 py-2 rounded-lg font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90"
           onClick={() => setOpen(true)}
         >
-          Create Expense
+          Add Income
         </button>
-      <ExpensesDialog
+
+
+      <IncomeDialog
         open={open}
         onOpenChange={setOpen}
-        title="Create Expense"
-        dialogName="Create Expense"
-        schema={ExpenseTrackerInputSchema}
+        title="Add Income"
+        dialogName="Add Income"
+        schema={createIncomeSchema}
         defaultValues={{
           name: "",
           amount: "",
-          //status: "pending",
+          source: "",
           date: new Date().toISOString().split("T")[0], // proper YYYY-MM-DD
           description: "",
         }}
@@ -148,16 +122,9 @@ const BudgetTracker = () => {
           />
         )}
       </div>
-        </TabsContent>
-        <TabsContent value="income">
-          <IncomeExpenses/>
-        </TabsContent>
-        </Tabs>
       </div>
       </div>
-
-
     </main>
   );
 };
-export default BudgetTracker
+export default IncomeExpenses

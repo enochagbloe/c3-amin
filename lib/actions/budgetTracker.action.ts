@@ -17,7 +17,7 @@ export async function createBudgetExpense(
   const validationResult = await action({
     params: {
       ...params,
-      amount: params.amount.toString(),
+      amount: params.amount,
       date: new Date(params.date),
     },
     schema: ExpenseTrackerInputSchema,
@@ -34,7 +34,7 @@ export async function createBudgetExpense(
     const newExpenses = await prisma.expenseTracker.create({
       data: {
         name: name,
-        amount: String(amount) as string,
+        amount: parseFloat(amount),
         status: status ?? "pending",
         description: description,
         date: date ?? new Date(),

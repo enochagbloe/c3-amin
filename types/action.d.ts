@@ -20,11 +20,12 @@ interface SignInWithOAuthParams {
 interface createBudgetExpense {
   // id: string;
   name: string;
-  amount: string;
+  amount: float;
   date: Date;
   status?: "pending" | "approved" | "rejected";
   description?: string;
 }
+
 
 interface updateExpenseStatusParams {
   id: string;
@@ -78,3 +79,27 @@ interface MakePaymentParams {
 //   status?: "pending" | "rejected" | "success"
 //   description?: string
 // }
+
+
+// Represents a single custom field value
+interface CustomFieldValue {
+  fieldId: string;       // ID of the custom field definition
+  value: string | number | boolean | Date; // value entered by the user
+}
+
+// Main income interface
+ interface CreateIncome {
+  id?: string;
+  name: string;     
+  amount: float;
+  source: string;
+  description?: string;
+  date: Date;
+  customFields?: CustomFieldValue[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+interface getAllIncome{
+  incomeId: string;
+}
