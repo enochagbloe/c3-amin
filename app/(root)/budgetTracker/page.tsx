@@ -12,6 +12,7 @@ import UploadCSV from "@/components/uploadcsv/uploadcsv";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import IncomeExpenses from "../IncomeExpenses/page";
 import { motion } from "framer-motion"
+import { Loading } from "@/components/ui/loaading-spinner";
 
 
 // Sample data matching the Payment type
@@ -137,8 +138,8 @@ const BudgetTracker = () => {
       <div className="container mx-auto py-10">
         {isFetching ? (
           <div className="flex justify-center items-center h-64">
-            <p>Loading expenses...</p>
-            {/* Or your spinner component */}
+           { /*<p>Loading expenses...</p>*/}
+            <Loading name="budget Expenses" />
           </div>
         ) : (
           <ReusableDataTable
