@@ -84,8 +84,8 @@ const CreateOrganizationDialog = ({ open, onOpenChange }: CreateOrganizationDial
         toast.success("Organization created successfully!");
         form.reset();
         onOpenChange(false);
-        // Redirect to the new organization
-        router.push(`/organizations/${result.data.id}`);
+        // Redirect to the organization workspace
+        router.push(`/org/${result.data.id}/dashboard`);
       } else {
         toast.error(result.error?.message || "Failed to create organization");
       }
