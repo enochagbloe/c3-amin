@@ -107,3 +107,47 @@ interface CustomFieldValue {
 interface getAllIncome{
   incomeId: string;
 }
+
+interface CreateOrganization {
+  name: string;
+  email?: string;
+  bio?: string;
+  industry: "CHURCH" | "RETAIL" | "SHOP" | "SOFTWARE" | "EDUCATION" | "NON_PROFIT" | "FINANCE" | "HEALTHCARE" | "OTHER";
+}
+
+interface UpdateOrganization {
+  id: string;
+  name?: string;
+  email?: string;
+  bio?: string;
+  industry?: "CHURCH" | "RETAIL" | "SHOP" | "SOFTWARE" | "EDUCATION" | "NON_PROFIT" | "FINANCE" | "HEALTHCARE" | "OTHER";
+}
+
+interface GetOrganization {
+  organizationId: string;
+}
+
+interface DeleteOrganization {
+  organizationId: string;
+}
+
+interface AddOrganizationMember {
+  organizationId: string;
+  userId: string;
+  role?: "OWNER" | "ADMIN" | "MEMBER" | "VIEWER";
+}
+
+interface UpdateOrganizationMember {
+  memberId: string;
+  role: "OWNER" | "ADMIN" | "MEMBER" | "VIEWER";
+}
+
+interface RemoveOrganizationMember {
+  memberId: string;
+}
+
+interface GetOrganizationMembers {
+  organizationId: string;
+  page?: number;
+  pageSize?: number;
+}
