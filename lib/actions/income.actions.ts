@@ -7,6 +7,7 @@ import action from "../handler/action";
 import handleError from "../handler/error";
 import { Income, Prisma } from "../generated/prisma";
 import { auth } from "@/auth";
+import { ForbiddenError } from "@/lib/http.error";
 
 // Define the Income type with customValues included
 export type IncomeWithCustomValues = Prisma.IncomeGetPayload<{
@@ -99,6 +100,9 @@ export async function getAllIncome(
         return handleError(validationResult) as ErrorResponse;
 
     const { incomeId } = validationResult.params!;
+    const session = await auth();
+    const userId = session?.user?.id as string;
+
     try {
         // Use findUnique since id is a unique field
         const income = await prisma.income.findUnique({
@@ -113,6 +117,16 @@ export async function getAllIncome(
                 }
             }
         });
+
+        if (!income) {
+            return { success: true, data: null };
+        }
+
+        // Authorization check - verify user owns this income
+        if (income.userId !== userId) {
+            throw new ForbiddenError("You can only view your own income records");
+        }
+
         return { success: true, data: income };
     } catch (error) {
         return handleError(error) as ErrorResponse;
