@@ -9,7 +9,6 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { AppSidebar } from "@/components/app-sidebar";
 
 export default function MainContentClient() {
   const [activeTab, setActiveTab] = useState("dashboard");
