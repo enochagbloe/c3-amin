@@ -83,7 +83,11 @@ interface MakePaymentParams {
 
 // Represents a single custom field value
 interface CustomFieldValue {
-  fieldId: string;       // ID of the custom field definition
+  fieldId?: string;       // Existing custom field ID
+  name?: string;          // Inline field name when creating new
+  type?: "TEXT" | "NUMBER" | "DATE" | "SELECT" | "TOGGLE"; // Inline field type
+  required?: boolean;
+  options?: string[];     // For SELECT when creating inline
   value: string | number | boolean | Date; // value entered by the user
 }
 

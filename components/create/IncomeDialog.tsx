@@ -86,15 +86,22 @@ export function IncomeDialog<T extends FieldValues>({
 
   const handleSubmit: SubmitHandler<T> = async (data) => {
     try {
-      // Merge custom field values with default values
-      const customFieldValues = customFields.reduce((acc, field) => {
-        const fieldKey = field.name.toLowerCase().replace(/\s+/g, '_');
-        acc[fieldKey] = customFieldData[fieldKey];
-        return acc;
-      }, {} as any);
+      // Build customFields payload expected by CreateIncome
+      const customFieldsPayload = customFields
+        .filter((f) => f.name.trim().length > 0)
+        .map((field) => {
+          const fieldKey = field.name.toLowerCase().replace(/\s+/g, '_');
+          return {
+            name: field.name,
+            type: field.type,
+            required: field.required,
+            options: field.options || [],
+            value: customFieldData[fieldKey] ?? "",
+          };
+        });
 
-      const fullData = { ...data, ...customFieldValues };
-      
+      const fullData = { ...data, customFields: customFieldsPayload } as any;
+
       const results = (await onSubmit(fullData)) as ActionResponse;
       if (results?.success) {
         toast.success(`${dialogName} created successfully!`);
