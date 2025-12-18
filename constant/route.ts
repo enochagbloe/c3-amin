@@ -4,5 +4,7 @@ export const ROUTES = {
   SIGN_UP: "/sign-up",
   SIGN_IN_WITH_OAUTH: `signin-with-oauth`,
   PROFILE: (id: string) => `/profile/${id}`,
-  USERS: (id: string) => `/users/${id}`
+  USERS: (id: string) => `/users/${id}`,
+  ORGANIZATIONS: "/organizations",
+  ORGANIZATION: (id: string) => `/organizations/${id}`,
 };

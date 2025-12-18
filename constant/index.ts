@@ -7,6 +7,7 @@ import {
   Bell,
   FileText,
   CreditCard,
+  Building2,
 } from "lucide-react";
 
 export const sidebarLinks = [
@@ -43,6 +44,12 @@ export const sidebarLinks = [
       { label: "Pending", route: "#" },
       { label: "Completed", route: "#" },
     ],
+  },
+  {
+    icon: Building2,
+    label: "Organizations",
+    route: "/organizations",
+    badge: null,
   },
   {
     icon: CreditCard,
