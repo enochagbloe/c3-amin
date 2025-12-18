@@ -9,6 +9,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { AppSidebar } from "@/components/app-sidebar";
 
 export default function MainContentClient() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -20,6 +21,7 @@ export default function MainContentClient() {
      {/* {activeTab === "dashboard" && <LeftSideBar />}*/}
       {/* {activeTab === "prompt" && <PromptSideBar />} */}
 
+     
       {/* MAIN */}
       <div className="flex-1 p-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
