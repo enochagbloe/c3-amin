@@ -333,3 +333,110 @@ export const createIncomeSchema = z.object({
 export const GetIncomeSchema = z.object({
   incomeId: z.string().min(1, { message: "Expense ID is required." }),
 });
+
+/**
+ * Organization Schemas
+ */
+export const IndustryEnum = [
+  "CHURCH",
+  "RETAIL",
+  "SHOP",
+  "SOFTWARE",
+  "EDUCATION",
+  "NON_PROFIT",
+  "FINANCE",
+  "HEALTHCARE",
+  "OTHER",
+] as const;
+
+export const CreateOrganizationSchema = z.object({
+  name: z
+    .string()
+    .min(1, { message: "Organization name is required." })
+    .max(200, { message: "Organization name cannot exceed 200 characters." }),
+  email: z
+    .string()
+    .email({ message: "Please provide a valid email address." })
+    .optional()
+    .or(z.literal("")),
+  bio: z
+    .string()
+    .max(500, { message: "Bio cannot exceed 500 characters." })
+    .optional()
+    .or(z.literal("")),
+  industry: z.enum(IndustryEnum, {
+    message: "Please select a valid industry.",
+  }),
+});
+
+export const UpdateOrganizationSchema = z.object({
+  id: z.string().uuid({ message: "Organization ID must be a valid UUID." }),
+  name: z
+    .string()
+    .min(1, { message: "Organization name is required." })
+    .max(200, { message: "Organization name cannot exceed 200 characters." })
+    .optional(),
+  email: z
+    .string()
+    .email({ message: "Please provide a valid email address." })
+    .optional()
+    .or(z.literal("")),
+  bio: z
+    .string()
+    .max(500, { message: "Bio cannot exceed 500 characters." })
+    .optional()
+    .or(z.literal("")),
+  industry: z
+    .enum(IndustryEnum, { message: "Please select a valid industry." })
+    .optional(),
+});
+
+export const GetOrganizationSchema = z.object({
+  organizationId: z.string().uuid({ message: "Organization ID must be a valid UUID." }),
+});
+
+export const DeleteOrganizationSchema = z.object({
+  organizationId: z.string().uuid({ message: "Organization ID must be a valid UUID." }),
+});
+
+/**
+ * Organization Member Schemas
+ */
+export const OrganizationRoleEnum = ["OWNER", "ADMIN", "MEMBER", "VIEWER"] as const;
+
+export const AddOrganizationMemberSchema = z.object({
+  organizationId: z.string().uuid({ message: "Organization ID must be a valid UUID." }),
+  userId: z.string().uuid({ message: "User ID must be a valid UUID." }),
+  role: z
+    .enum(OrganizationRoleEnum, { message: "Please select a valid role." })
+    .default("MEMBER"),
+});
+
+export const UpdateOrganizationMemberSchema = z.object({
+  memberId: z.string().uuid({ message: "Member ID must be a valid UUID." }),
+  role: z.enum(OrganizationRoleEnum, {
+    message: "Please select a valid role.",
+  }),
+});
+
+export const RemoveOrganizationMemberSchema = z.object({
+  memberId: z.string().uuid({ message: "Member ID must be a valid UUID." }),
+});
+
+export const GetOrganizationMembersSchema = z.object({
+  organizationId: z.string().uuid({ message: "Organization ID must be a valid UUID." }),
+  page: z.number().min(1, { message: "Page must be at least 1." }).default(1),
+  pageSize: z
+    .number()
+    .min(1, { message: "Page size must be at least 1." })
+    .max(100, { message: "Page size cannot exceed 100." })
+    .default(10),
+});
+
+/**
+ * Type exports for Organization
+ */
+export type CreateOrganization = z.infer<typeof CreateOrganizationSchema>;
+export type UpdateOrganization = z.infer<typeof UpdateOrganizationSchema>;
+export type AddOrganizationMember = z.infer<typeof AddOrganizationMemberSchema>;
+export type UpdateOrganizationMember = z.infer<typeof UpdateOrganizationMemberSchema>;
