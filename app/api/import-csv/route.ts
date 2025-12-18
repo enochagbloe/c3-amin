@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
       if (!name || isNaN(amount) || isNaN(date.getTime())) continue;
 
       const inserted = await prisma.expenseTracker.create({
-        data: { name, amount: String(amount), date, status, author, description },
+        data: { name, amount: amount, date, status, author, description },
       });
 
       insertedRows.push(inserted);

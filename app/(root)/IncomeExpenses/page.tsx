@@ -60,8 +60,8 @@ const IncomeExpenses = () => {
     }
   };
 
-  const handleRowClick = (expense: Payment) => {
-    router.push(`/budgetTracker/${expense.id}`);
+  const handleRowClick = (income: Payment) => {
+    router.push(`/IncomeExpenses/${income.id}`);
   };
 
   return (

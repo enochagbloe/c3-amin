@@ -1,11 +1,23 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { createIncomeSchema, GetIncomeSchema } from "@/lib/validations";
 import prisma from "../prisma";
 import action from "../handler/action";
 import handleError from "../handler/error";
-import { Income } from "../generated/prisma";
+import { Income, Prisma } from "../generated/prisma";
 import { auth } from "@/auth";
+
+// Define the Income type with customValues included
+export type IncomeWithCustomValues = Prisma.IncomeGetPayload<{
+    include: {
+        customValues: {
+            include: {
+                customField: true
+            }
+        }
+    }
+}>;
 
 
 export async function CreateIncome(params: CreateIncome): Promise<ActionResponse<Income>> {
@@ -31,20 +43,39 @@ export async function CreateIncome(params: CreateIncome): Promise<ActionResponse
                 source,
                 description,
                 date: new Date(date),
+                customValues: {
+                    create: [],
+                },
             },
         });
 
         if (customFields && customFields.length > 0) {
             await Promise.all(
-                customFields.map((cf) =>
-                    prisma.incomeCustomValue.create({
+                customFields.map(async (cf) => {
+                    let fieldId = cf.fieldId;
+
+                    // If no existing fieldId, create a new CustomField definition
+                    if (!fieldId) {
+                        const createdField = await prisma.customField.create({
+                            data: {
+                                userId,
+                                name: cf.name || "Custom Field",
+                                type: (cf.type as any) || "TEXT",
+                                required: cf.required ?? false,
+                                options: cf.options ?? [],
+                            },
+                        });
+                        fieldId = createdField.id;
+                    }
+
+                    await prisma.incomeCustomValue.create({
                         data: {
                             incomeId: newIncome.id,
-                            fieldId: cf.fieldId,
-                            value: String(cf.value),
+                            fieldId,
+                            value: cf.value instanceof Date ? cf.value.toISOString() : String(cf.value),
                         },
-                    })
-                )
+                    });
+                })
             );
         }
 
@@ -57,7 +88,7 @@ export async function CreateIncome(params: CreateIncome): Promise<ActionResponse
 
 export async function getAllIncome(
     params: getAllIncome
-): Promise<ActionResponse<Income[]>> {
+): Promise<ActionResponse<IncomeWithCustomValues | null>> {
     const validationResult = await action({
         params,
         schema: GetIncomeSchema,
@@ -69,15 +100,20 @@ export async function getAllIncome(
 
     const { incomeId } = validationResult.params!;
     try {
-        const incomes = await prisma.income.findMany({
+        // Use findUnique since id is a unique field
+        const income = await prisma.income.findUnique({
             where: {
                 id: incomeId,
             },
-            orderBy: {
-                date: "desc",
-            },
+            include: {
+                customValues: {
+                    include: {
+                        customField: true
+                    }
+                }
+            }
         });
-        return { success: true, data: incomes };
+        return { success: true, data: income };
     } catch (error) {
         return handleError(error) as ErrorResponse;
     }

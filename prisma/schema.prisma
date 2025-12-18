@@ -39,9 +39,8 @@ model Income {
   amount        Float
   source        String
   description   String?
-  date          DateTime @default(now())
-  createdAt     DateTime              @default(now())
-
+  date          DateTime   @default(now())
+  createdAt     DateTime   @default(now())
   customValues  IncomeCustomValue[]
 }
 

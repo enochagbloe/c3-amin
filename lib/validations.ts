@@ -283,10 +283,28 @@ export const customFieldSchema = z.object({
   }
 });
 
-export const customFieldValueSchema = z.object({
-  fieldId: z.string().uuid(),
-  value: z.union([z.string(), z.number(), z.boolean(), z.date()]),
-});
+const customFieldValueSchema = z
+  .object({
+    fieldId: z.string().uuid().optional(),
+    name: z.string().min(1, "Field name is required").optional(),
+    type: z.enum(["TEXT", "NUMBER", "DATE", "SELECT", "TOGGLE"]).optional(),
+    required: z.boolean().optional(),
+    options: z.array(z.string()).optional(),
+    value: z.union([z.string(), z.number(), z.boolean(), z.date()]),
+  })
+  .refine(
+    (data) => !!data.fieldId || (!!data.name && !!data.type),
+    { message: "Provide either fieldId or name/type for a custom field" }
+  )
+  .refine(
+    (data) => {
+      if (data.type === "SELECT" && data.fieldId === undefined) {
+        return Array.isArray(data.options) && data.options.length > 0;
+      }
+      return true;
+    },
+    { message: "Options are required for SELECT type fields" }
+  );
 
 export const baseIncomeSchema = z.object({
  name: z
