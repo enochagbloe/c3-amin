@@ -18,12 +18,15 @@ model ExpenseTracker {
   updatedAt DateTime @updatedAt
   author   String
   description String?
+  organizationId String?
+  
+  organization  Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   // Author from MongoDb Users collection
   
   @@index([author])
-
   @@index([date])
+  @@index([organizationId])
 }
 
 enum Status {
@@ -72,4 +75,52 @@ enum FieldType {
   DATE
   SELECT
   TOGGLE
+}
+
+
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?  // contact email for the org
+  bio       String?  // short description / about
+  industry  Industry
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members   OrganizationMember[]
+  expenses  ExpenseTracker[]
+}
+
+enum Industry {
+  CHURCH
+  RETAIL
+  SHOP
+  SOFTWARE
+  EDUCATION
+  NON_PROFIT
+  FINANCE
+  HEALTHCARE
+  OTHER
+}
+
+
+model OrganizationMember {
+  id             String @id @default(uuid())
+  userId         String
+  organizationId String
+  role           OrganizationRole @default(MEMBER)
+  joinedAt       DateTime @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+}
+
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
 }
