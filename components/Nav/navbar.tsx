@@ -2,6 +2,7 @@ import React from "react";
 import Navigation from "./Navigation";
 import UserAvatar from "../UserAvatar";
 import { ThemeToggle } from "../ui/theme";
+import OrgSwitcher from "./OrgSwitcher";
 // import { auth } from "@/auth";
 
 const NavBar = async () => {
@@ -19,6 +20,7 @@ const NavBar = async () => {
         </div>
         <h2> Local search </h2>
         <div className="flex items-center gap-4">
+          <OrgSwitcher />
           <UserAvatar name='enoch agbloe' id='' />
           <ThemeToggle />
         </div>
