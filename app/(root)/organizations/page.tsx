@@ -85,7 +85,7 @@ const OrganizationsPage = () => {
   };
 
   const handleCardClick = (orgId: string) => {
-    router.push(`/organizations/${orgId}`);
+    router.push(`/org/${orgId}/dashboard`);
   };
 
   if (isLoading) {
