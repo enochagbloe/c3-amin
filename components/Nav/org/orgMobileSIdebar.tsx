@@ -10,16 +10,14 @@ import {
 import { Menu } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import NavLinks from "../NavLinks";
 import { Button } from "../../ui/button";
-import { auth, signOut } from "@/auth";
-import { LogOut } from "lucide-react";
 import { ROUTES } from "@/constant/route";
 import OrgSidebar from "./OrgSidebar";
+import { getOrganization } from "@/lib/actions/organization.actions";
 
 const OrgMobileSidebar = async () => {
-  const session = await auth();
-  const userId = session?.user?.id;
+const org = await getOrganization({ organizationId: "orgId" });
+const [ organizationName ] = (org.data?.name || "Organization");
   return (
     <>
       <Sheet>
@@ -36,7 +34,7 @@ const OrgMobileSidebar = async () => {
                   width={30}
                   alt="logo"
                 />
-                <p>C3 Ignite ERP</p>
+                <p>{organizationName}</p>
               </Link>
               <section className="mt-10 h-full flex-col flex gap-3 pt-4 scrollbar-hide">
                 {/*<NavLinks isMobile />*/}
@@ -44,21 +42,6 @@ const OrgMobileSidebar = async () => {
               </section>
               <SheetClose>
                 <div className="flex">
-                  {userId ? (
-                    <SheetClose asChild>
-                      <form
-                        action={async () => {
-                          "use server";
-                          await signOut();
-                        }}
-                      >
-                        <Button className="flex py-2 px-12 w-full">
-                          <LogOut /> <span>Logout</span>
-                        </Button>
-                      </form>
-                    </SheetClose>
-                  ) : (
-                    <>
                       <SheetClose asChild>
                         <Link href={ROUTES.SIGN_IN}>
                           <Button className="small-medium btn-secondary mt-12 min-h-[41px] w-full rounded-lg px-4 py-3 shadow-none">
@@ -74,8 +57,6 @@ const OrgMobileSidebar = async () => {
                           </Button>
                         </Link>
                       </SheetClose>
-                    </>
-                  )}
                 </div>
               </SheetClose>
             </SheetTitle>

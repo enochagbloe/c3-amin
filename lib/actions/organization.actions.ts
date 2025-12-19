@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 "use server";
 
@@ -17,6 +18,7 @@ import {
 } from "@/lib/validations";
 import { auth } from "@/auth";
 import { ForbiddenError, NotFoundError } from "@/lib/http.error";
+import User from "@/database/user.model";
 
 /**
  * CREATE ORGANIZATION
@@ -485,7 +487,7 @@ export async function getOrganizationMembers(
     params,
     schema: GetOrganizationMembersSchema,
     authorize: true,
-    useMongo: false,
+    useMongo: true, // Enable MongoDB connection for User model
   });
 
   if (validationResult instanceof Error)
@@ -524,10 +526,33 @@ export async function getOrganizationMembers(
       }),
     ]);
 
+    // Fetch user details from MongoDB for each member
+    const membersWithUserDetails = await Promise.all(
+      members.map(async (member) => {
+        try {
+          const user = await User.findById(member.userId).lean();
+          return {
+            ...member,
+            user: user ? {
+              name: (user as any).name as string,
+              email: (user as any).email as string,
+              image: (user as any).image as string,
+            } : null,
+          };
+        } catch (error) {
+          console.error(`Failed to fetch user ${member.userId}:`, error);
+          return {
+            ...member,
+            user: null,
+          };
+        }
+      })
+    );
+
     return {
       success: true,
       data: {
-        members,
+        members: membersWithUserDetails as any,
         total,
         page,
         pageSize,

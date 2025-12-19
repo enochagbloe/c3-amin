@@ -8,13 +8,14 @@ export default function OrgLayout({
   children: React.ReactNode;
 }) {
   return (
-    <main className="flex h-screen">
-      {/* Organization Sidebar */}
-      <OrgSidebar />
+    <main>
       <OrgNavBar />
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto">
-        {children}
+      <div className="flex">
+        <OrgSidebar />
+        {/* Main Content */}
+        <section className="flex max-h-screen flex-1 flex-col px-3 pb-3 pt-8 max-md:pb-8 sm:px-6 overflow-y-auto">
+          <div>{children}</div>
+        </section>
       </div>
     </main>
   );
