@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { AnimatePresence } from "framer-motion";
 import {
   ChatMessage,
@@ -9,13 +9,12 @@ import {
   ChatHeader,
   ChatEmptyState,
   ChatTypingIndicator,
+  ChatSidebar,
 } from "@/components/chat";
+import { useChatSafe } from "@/lib/context/ChatContext";
 import handleError from "@/lib/handler/error";
-
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
+import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AttachedFile {
   name: string;
@@ -25,70 +24,68 @@ interface AttachedFile {
 }
 
 const ChatPage = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const chatContext = useChatSafe();
+
   const [prompt, setPrompt] = useState<string>("");
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [typingMessageIndex, setTypingMessageIndex] = useState<number | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const isMobile = useIsMobile();
+
+  // Get current session directly from context state (not via callback)
+  // This ensures we always have the latest data when context re-renders
+  const currentSession = useMemo(() => {
+    if (!chatContext?.currentSessionId || !chatContext?.sessions) return null;
+    return chatContext.sessions.find((s) => s.id === chatContext.currentSessionId) || null;
+  }, [chatContext?.currentSessionId, chatContext?.sessions]);
+  
+  const messages = useMemo(() => currentSession?.messages ?? [], [currentSession?.messages]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Type animation for AI response
-  const typeMessage = useCallback(async (text: string) => {
-    const words = text.split(" ");
-    let currentText = "";
-
-    setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
-    const messageIndex = messages.length + 1;
-    setTypingMessageIndex(messageIndex);
-
-    for (let i = 0; i < words.length; i++) {
-      currentText += (i > 0 ? " " : "") + words[i];
-
-      setMessages((prev) => {
-        const newMessages = [...prev];
-        newMessages[messageIndex] = { role: "assistant", content: currentText };
-        return newMessages;
-      });
-
-      await new Promise((resolve) => setTimeout(resolve, 30));
-    }
-
-    setTypingMessageIndex(null);
-  }, [messages.length]);
-
   // Handle submit
   const handleSubmit = async () => {
     if (!prompt.trim() && attachedFiles.length === 0) return;
+    if (!chatContext) return;
 
     const userMessage = prompt;
-    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+    
+    // Add user message to context
+    chatContext.addMessage({ role: "user", content: userMessage });
+    
     setPrompt("");
     setAttachedFiles([]);
     setIsLoading(true);
 
     try {
+      // Get context from previous sessions for smarter AI responses
+      const previousContext = chatContext.getSessionContext(3);
+      
       const response = await fetch("/api/ai/chats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage }),
+        body: JSON.stringify({ 
+          message: userMessage,
+          context: previousContext,
+        }),
       });
 
       const result = await response.json();
       const aiReply = result.data || "Sorry, I didn't catch that. Please try again.";
       
-      await typeMessage(aiReply);
+      // Add AI response to context
+      chatContext.addMessage({ role: "assistant", content: aiReply });
     } catch (err) {
       handleError(err, "api") as APIErrorResponse;
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Sorry, something went wrong. Please try again." },
-      ]);
+      chatContext.addMessage({ 
+        role: "assistant", 
+        content: "Sorry, something went wrong. Please try again." 
+      });
     } finally {
       setIsLoading(false);
     }
@@ -107,12 +104,21 @@ const ChatPage = () => {
 
   // Handle new chat
   const handleNewChat = () => {
-    setMessages([]);
+    chatContext?.clearCurrentSession();
     setPrompt("");
     setAttachedFiles([]);
   };
 
   const isFirstMessage = messages.length === 0;
+
+  // Show loading state while context is not available
+  if (!chatContext) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-80px)] bg-gradient-to-b from-gray-50 to-white dark:from-zinc-900 dark:to-zinc-950">
+        <div className="animate-pulse text-gray-500">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] bg-gradient-to-b from-gray-50 to-white dark:from-zinc-900 dark:to-zinc-950">
@@ -122,7 +128,10 @@ const ChatPage = () => {
       {/* Messages Area */}
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-6 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-zinc-700"
+        className={cn(
+          "flex-1 overflow-y-auto px-4 py-6 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-zinc-700 transition-all duration-300",
+          isSidebarOpen && !isMobile && "pr-[340px]"
+        )}
       >
         <div className="max-w-3xl mx-auto space-y-6">
           {/* Empty State */}
@@ -135,19 +144,18 @@ const ChatPage = () => {
 
           {/* Messages */}
           <AnimatePresence mode="popLayout">
-            {messages.map((msg, idx) => (
+            {messages.map((message) => (
               <ChatMessage
-                key={idx}
-                role={msg.role}
-                content={msg.content}
-                isTyping={idx === typingMessageIndex}
+                key={message.id}
+                role={message.role}
+                content={message.content}
               />
             ))}
           </AnimatePresence>
 
           {/* Typing Indicator */}
           <AnimatePresence>
-            {isLoading && typingMessageIndex === null && <ChatTypingIndicator />}
+            {isLoading && <ChatTypingIndicator />}
           </AnimatePresence>
 
           <div ref={messagesEndRef} />
@@ -155,7 +163,10 @@ const ChatPage = () => {
       </div>
 
       {/* Input Area */}
-      <div className="sticky bottom-0 bg-gradient-to-t from-white via-white to-transparent dark:from-zinc-950 dark:via-zinc-950 pt-4 pb-6 px-4">
+      <div className={cn(
+        "sticky bottom-0 bg-gradient-to-t from-white via-white to-transparent dark:from-zinc-950 dark:via-zinc-950 pt-4 pb-6 px-4 transition-all duration-300",
+        isSidebarOpen && !isMobile && "pr-[340px]"
+      )}>
         <div className="max-w-3xl mx-auto">
           <ChatInput
             value={prompt}
@@ -173,6 +184,12 @@ const ChatPage = () => {
           </p>
         </div>
       </div>
+
+      {/* Sidebar */}
+      <ChatSidebar 
+        isOpen={isSidebarOpen} 
+        onToggle={() => setIsSidebarOpen(!isSidebarOpen)} 
+      />
     </div>
   );
 };
