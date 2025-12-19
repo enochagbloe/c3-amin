@@ -40,6 +40,7 @@ export async function createBudgetExpense(
         description: description,
         date: date ?? new Date(),
         author: userId,
+        organizationId: (params as any).organizationId || null, // Add org support
       },
     });
     console.log("New Expense Created:", newExpenses);

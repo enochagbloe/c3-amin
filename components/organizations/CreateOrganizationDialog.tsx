@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React from "react";
@@ -242,7 +243,7 @@ const CreateOrganizationDialog = ({ open, onOpenChange }: CreateOrganizationDial
         <DialogHeader>
           <DialogTitle>Create Organization</DialogTitle>
           <DialogDescription>
-            Set up a new organization to collaborate with your team. You'll be set as the owner.
+            Set up a new organization to collaborate with your team. You&apos;ll be set as the owner.
           </DialogDescription>
         </DialogHeader>
         {formContent}

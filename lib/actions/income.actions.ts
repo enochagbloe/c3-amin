@@ -44,6 +44,7 @@ export async function CreateIncome(params: CreateIncome): Promise<ActionResponse
                 source,
                 description,
                 date: new Date(date),
+                organizationId: (params as any).organizationId || null, // Add org support
                 customValues: {
                     create: [],
                 },
