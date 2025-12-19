@@ -1,11 +1,12 @@
 import React from "react";
-import Navigation from "./Navigation";
-import UserAvatar from "../UserAvatar";
-import { ThemeToggle } from "../ui/theme";
-import OrgSwitcher from "./org/OrgSwitcher";
+
+import { ThemeToggle } from "@/components/ui/theme";
+import UserAvatar from "@/components/UserAvatar";
+import OrgMobileSidebar from "./orgMobileSIdebar";
+import OrgSwitcher from "./OrgSwitcher";
 // import { auth } from "@/auth";
 
-const NavBar = async () => {
+const OrgNavBar = async () => {
   // const session = await auth();
   // const userIdName = session?.user?.name;
   // const userId = session?.user?.id;
@@ -14,7 +15,7 @@ const NavBar = async () => {
       <div className="flex justify-between items-center px-4 h-full">
         <div className="flex gap-4">
           <span className="lg:hidden">
-            <Navigation />
+            <OrgMobileSidebar />
           </span>
           <h2> NavLogo</h2>
         </div>
@@ -29,4 +30,4 @@ const NavBar = async () => {
   );
 };
 
-export default NavBar;
+export default OrgNavBar;
