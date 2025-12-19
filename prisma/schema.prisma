@@ -44,7 +44,12 @@ model Income {
   description   String?
   date          DateTime   @default(now())
   createdAt     DateTime   @default(now())
+  organizationId String?
   customValues  IncomeCustomValue[]
+  
+  organization  Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@index([organizationId])
 }
 
 model CustomField {
@@ -91,6 +96,7 @@ model Organization {
 
   members   OrganizationMember[]
   expenses  ExpenseTracker[]
+  income    Income[]
 }
 
 enum Industry {

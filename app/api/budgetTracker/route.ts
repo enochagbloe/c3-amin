@@ -8,11 +8,22 @@ const allowedStatuses = ["approved", "pending", "rejected"] as const; // valid e
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
+  const orgId = searchParams.get("orgId");
 
-  // Only use status if it's truly valid
-  const whereCondition = allowedStatuses.includes(status as any)
-    ? { status: status as (typeof allowedStatuses)[number] }
-    : undefined;
+  // Build where condition
+  const whereCondition: any = {};
+  
+  // Filter by organizationId or personal (null)
+  if (orgId) {
+    whereCondition.organizationId = orgId;
+  } else {
+    whereCondition.organizationId = null; // Only personal expenses
+  }
+  
+  // Add status filter if valid
+  if (allowedStatuses.includes(status as any)) {
+    whereCondition.status = status as (typeof allowedStatuses)[number];
+  }
 
   try {
     const getExpenses = await prisma.expenseTracker.findMany({
