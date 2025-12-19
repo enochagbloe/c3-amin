@@ -65,20 +65,19 @@ const IncomeExpenses = () => {
   };
 
   return (
-    <main>
-      <div className="items-center justify-center">
-      <div>
-        {/* Budget Tab*/}
-      <section className="flex justify-between mb-6">
+    <main className="w-full">
+      <div className="w-full px-4 md:px-6 lg:px-8">
+        {/* Income Tab*/}
+      <section className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Income Tracker</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">Income Tracker</h1>
           </div>
 
           {/*<UploadCSV/>*/}
       </section>
 
         <button
-          className="px-4 py-2 rounded-lg font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90"
+          className="w-full sm:w-auto px-4 py-2 mb-4 rounded-lg font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90"
           onClick={() => setOpen(true)}
         >
           Add Income
@@ -109,19 +108,20 @@ const IncomeExpenses = () => {
         }}
       />
 
-      <div className="container mx-auto py-10">
+      <div className="w-full py-6 md:py-10">
         {isFetching ? (
           <div className="flex justify-center items-center h-64">
               <Loading name="Income Expenses"/>
           </div>
         ) : (
-          <ReusableDataTable
-            columns={columns}
-            data={tableData}
-            onRowClick={handleRowClick} // ← fixed: just pass the function
-          />
+          <div className="w-full overflow-x-auto">
+            <ReusableDataTable
+              columns={columns}
+              data={tableData}
+              onRowClick={handleRowClick} // ← fixed: just pass the function
+            />
+          </div>
         )}
-      </div>
       </div>
       </div>
     </main>

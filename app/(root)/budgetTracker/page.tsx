@@ -11,7 +11,6 @@ import { toast } from "sonner";
 import UploadCSV from "@/components/uploadcsv/uploadcsv";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import IncomeExpenses from "../IncomeExpenses/page";
-import { motion } from "framer-motion"
 import { Loading } from "@/components/ui/loaading-spinner";
 
 
@@ -69,44 +68,30 @@ const BudgetTracker = () => {
   };
 
   return (
-    <main>
-      <div className="items-center justify-center">
-      <div>
-        <Tabs defaultValue="income">
-          <TabsList>
-           <TabsTrigger value="income">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-                >
-                  Income
-                </motion.button>
+    <main className="w-full">
+      <div className="w-full px-4 md:px-6 lg:px-8">
+        <Tabs defaultValue="income" className="">
+          <TabsList className="">
+           <TabsTrigger value="income" className="">
+              Income
            </TabsTrigger>
-           <TabsTrigger value="Budget">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-                >
-                  Budget
-                </motion.button>
-
+           <TabsTrigger value="Budget" className="flex-1 md:flex-none">
+              Budget
            </TabsTrigger>
           </TabsList>
-        <TabsContent value="Budget">
+        <TabsContent value="Budget" className="w-full">
 
 
       {/* Budget Tab*/}
-      <section className="flex justify-between mb-6">
+      <section className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 mt-4">
           <div>
-            <h1 className="text-2xl font-bold">Budget Tracker</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">Budget Tracker</h1>
           </div>
 
           <UploadCSV/>
       </section>
         <button
-          className="px-4 py-2 rounded-lg font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90"
+          className="w-full sm:w-auto px-4 py-2 mb-4 rounded-lg font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90"
           onClick={() => setOpen(true)}
         >
           Create Expense
@@ -121,40 +106,39 @@ const BudgetTracker = () => {
           name: "",
           amount: "",
           //status: "pending",
-          date: new Date().toISOString().split("T")[0], // proper YYYY-MM-DD
+          date: new Date(), // proper YYYY-MM-DD
           description: "",
         }}
         onSubmit={handleSubmit}
         isLoading={isLoading} 
         fieldConfig={{
           name: {
-            type: "text", // or "select" if you have options
+            type: "text",
             placeholder: "Expense name",
-          },
-          // ... other field configs
+          }
         }}
       />
 
-      <div className="container mx-auto py-10">
+      <div className="w-full py-6 md:py-10">
         {isFetching ? (
           <div className="flex justify-center items-center h-64">
-           { /*<p>Loading expenses...</p>*/}
             <Loading name="budget Expenses" />
           </div>
         ) : (
-          <ReusableDataTable
-            columns={columns}
-            data={tableData}
-            onRowClick={handleRowClick} // ← fixed: just pass the function
-          />
+          <div className="w-full overflow-x-auto">
+            <ReusableDataTable
+              columns={columns}
+              data={tableData}
+              onRowClick={handleRowClick}
+            />
+          </div>
         )}
       </div>
         </TabsContent>
-        <TabsContent value="income">
+        <TabsContent value="income" className="w-full">
           <IncomeExpenses/>
         </TabsContent>
         </Tabs>
-      </div>
       </div>
 
 

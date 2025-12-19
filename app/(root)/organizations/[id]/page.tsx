@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useRouter as useNavRouter } from "next/navigation";
 import { getOrganization } from "@/lib/actions/organization.actions";
 import { Button } from "@/components/ui/button";

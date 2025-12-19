@@ -63,7 +63,7 @@ export function ReusableDataTable<TData, TValue>({
   });
 
   return (
-    <div>
+    <div className="w-full">
       {/* Search filter */}
       {searchKey && (
         <div className="flex items-center py-4">
@@ -75,29 +75,30 @@ export function ReusableDataTable<TData, TValue>({
             onChange={(event) =>
               table.getColumn(searchKey)?.setFilterValue(event.target.value)
             }
-            className="max-w-sm"
+            className="max-w-sm w-full"
           />
         </div>
       )}
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-                {/* Actions column header - ALWAYS VISIBLE */}
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
+      <div className="rounded-md border w-full overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id} className="whitespace-nowrap">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  ))}
+                  {/* Actions column header - ALWAYS VISIBLE */}
+                  <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
+                </TableRow>
             ))}
           </TableHeader>
           <TableBody>
@@ -114,7 +115,7 @@ export function ReusableDataTable<TData, TValue>({
                   }
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="whitespace-nowrap">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -123,7 +124,7 @@ export function ReusableDataTable<TData, TValue>({
                   ))}
                   {/* Actions column - ALWAYS VISIBLE */}
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-1 sm:gap-2">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -133,7 +134,7 @@ export function ReusableDataTable<TData, TValue>({
                         }}
                         className="h-8 w-8"
                       >
-                        <Pen className="h-4 w-4" />
+                        <Pen className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -144,7 +145,7 @@ export function ReusableDataTable<TData, TValue>({
                         }}
                         className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
                     </div>
                   </TableCell>
@@ -162,11 +163,12 @@ export function ReusableDataTable<TData, TValue>({
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Pagination controls */}
       {pagination && (
-        <div className="flex items-center justify-end space-x-2 py-4">
+        <div className="flex items-center justify-center sm:justify-end space-x-2 py-4">
           <Button
             variant="outline"
             size="sm"
