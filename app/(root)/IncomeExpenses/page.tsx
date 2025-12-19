@@ -111,7 +111,7 @@ const IncomeExpenses = () => {
       <div className="w-full py-6 md:py-10">
         {isFetching ? (
           <div className="flex justify-center items-center h-64">
-              <Loading name="Income Expenses"/>
+              <Loading name="Loading Income Expenses"/>
           </div>
         ) : (
           <div className="w-full overflow-x-auto">
