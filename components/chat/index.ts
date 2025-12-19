@@ -4,3 +4,5 @@ export { ChatShortcuts } from "./ChatShortcuts";
 export { ChatHeader } from "./ChatHeader";
 export { ChatEmptyState } from "./ChatEmptyState";
 export { ChatTypingIndicator } from "./ChatTypingIndicator";
+export { ChatSessionItem } from "./ChatSessionItem";
+export { ChatSidebar } from "./ChatSidebar";
