@@ -68,15 +68,22 @@ const OrgMembersPage = () => {
     const fetchMembers = async () => {
       try {
         setIsFetching(true);
+        console.log("Fetching members for org:", orgId);
         const result = await getOrganizationMembers({ organizationId: orgId });
+        
+        console.log("Members result:", result);
         
         if (result.success && result.data) {
           const data = result.data as any;
+          console.log("Members data:", data);
           setMembers(data.members || []);
+        } else {
+          console.error("Failed to fetch members:", result);
+          toast.error(result.error?.message || "Failed to load members");
         }
       } catch (error) {
         toast.error("Failed to load organization members");
-        console.error(error);
+        console.error("Fetch error:", error);
       } finally {
         setIsFetching(false);
       }
