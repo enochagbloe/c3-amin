@@ -15,14 +15,8 @@ export default function MainContentClient() {
 
   return (
     <main className="flex h-screen">
-      
-      {/* SIDEBAR */}
-     {/* {activeTab === "dashboard" && <LeftSideBar />}*/}
-      {/* {activeTab === "prompt" && <PromptSideBar />} */}
-
-     
       {/* MAIN */}
-      <div className="flex-1 p-4">
+      <div className="flex-1">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>

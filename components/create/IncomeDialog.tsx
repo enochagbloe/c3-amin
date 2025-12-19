@@ -591,7 +591,7 @@ export function IncomeDialog<T extends FieldValues>({
         <DrawerContent className="max-h-[90vh]">
           <DrawerHeader className="border-b pb-4 px-4">
             <div className="flex items-center justify-between">
-              <DrawerTitle className="text-lg font-semibold">{title}</DrawerTitle>
+              <DrawerTitle className="text-lg font-semibold mt-6">{title}</DrawerTitle>
               {customFields.length > 0 && (
                 <Button
                   type="button"
