@@ -6,6 +6,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "../ui/drawer";
 import { useForm, SubmitHandler, FieldValues } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import z, { ZodType } from "zod";
@@ -25,6 +31,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Loader2 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface FieldOption {
   label: string;
@@ -62,6 +69,7 @@ export function ExpensesDialog<T extends FieldValues>({
   dialogName,
   isLoading,
 }: ReusableDialogProps<T>) {
+  const isMobile = useIsMobile();
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues,
@@ -99,93 +107,118 @@ export function ExpensesDialog<T extends FieldValues>({
     return null;
   };
 
+  const FormContent = (
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(handleSubmit)}
+        className="space-y-4 px-1"
+      >
+        {Object.keys(defaultValues).map((fieldName) => (
+          <FormField
+            key={fieldName}
+            control={form.control}
+            name={String(fieldName)}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium">
+                  {fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}
+                </FormLabel>
+                <FormControl>
+                  {fieldName === "date" ? (
+                    <Popover modal={true}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full justify-start text-left font-normal h-11",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">
+                            {field.value ? (
+                              formatDateSafely(field.value) || "Invalid date"
+                            ) : (
+                              "Pick a date"
+                            )}
+                          </span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent 
+                        className="w-auto p-0" 
+                        align="start"
+                        side="bottom"
+                        sideOffset={4}
+                      >
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={(date) => {
+                            field.onChange(date || undefined);
+                          }}
+                          initialFocus
+                          disabled={(date) =>
+                            date < new Date("1900-01-01")
+                          }
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <Input
+                      type={fieldName === "amount" ? "number" : "text"}
+                      {...field}
+                      value={field.value || ""}
+                      className="h-11 text-base"
+                      inputMode={fieldName === "amount" ? "decimal" : "text"}
+                    />
+                  )}
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ))}
+       <Button
+          type="submit"
+          className="w-full h-11 text-base mt-6"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Creating...
+            </>
+          ) : (
+            "Submit"
+          )}
+        </Button>
+      </form>
+    </Form>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader className="border-b pb-4">
+            <DrawerTitle className="text-lg font-semibold">{title}</DrawerTitle>
+          </DrawerHeader>
+          <div className="px-4 py-4 overflow-y-auto flex-1">
+            {FormContent}
+          </div>
+          <div className="h-safe-area-inset-bottom" />
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-4"
-          >
-            {Object.keys(defaultValues).map((fieldName) => (
-              <FormField
-                key={fieldName}
-                control={form.control}
-                name={String(fieldName)}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}
-                    </FormLabel>
-                    <FormControl>
-                      {fieldName === "date" ? (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {field.value ? (
-                                formatDateSafely(field.value) || "Invalid date"
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={(date) => {
-                                // Ensure we're passing a proper Date object
-                                field.onChange(date || undefined);
-                              }}
-                              initialFocus
-                              disabled={(date) =>
-                                // Optional: disable future dates
-                                // date > new Date() ||
-                                date < new Date("1900-01-01")
-                              }
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      ) : (
-                        <Input
-                          type={fieldName === "amount" ? "number" : "text"}
-                          {...field}
-                          // Ensure controlled input
-                          value={field.value || ""}
-                        />
-                      )}
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ))}
-           <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                "Submit"
-              )}
-            </Button>
-          </form>
-        </Form>
+        {FormContent}
       </DialogContent>
     </Dialog>
   );

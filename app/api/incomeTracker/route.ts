@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import handleError from "@/lib/handler/error";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
