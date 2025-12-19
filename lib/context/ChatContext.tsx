@@ -9,78 +9,85 @@ import React, {
   useMemo,
   useRef,
 } from "react";
-
-// Storage key for localStorage
-const STORAGE_KEY = "c3-amin-chat-sessions";
-
-// Generate unique ID
-const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-// Generate title from first message
-const generateTitle = (content: string): string => {
-  const maxLength = 40;
-  const cleaned = content.trim().replace(/\n/g, " ");
-  if (cleaned.length <= maxLength) return cleaned;
-  return cleaned.substring(0, maxLength).trim() + "...";
-};
+import {
+  getChatSessions,
+  createSessionWithMessage,
+  addMessageToSession,
+  updateChatSession,
+  deleteChatSession,
+} from "../actions/chat.actions";
+import { toast } from "sonner";
+import { IChatMessage, IChatSessionDoc } from "@/database/chatSession.model";
 
 // Create context with default values
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
+// Props for the provider
+interface ChatProviderProps {
+  children: React.ReactNode;
+  organizationId?: string; // Optional: for org-specific chats
+}
+
 // Provider component
-export function ChatProvider({ children }: { children: React.ReactNode }) {
+export function ChatProvider({ children, organizationId }: ChatProviderProps) {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
   // Use a ref to always have the latest session ID (avoids stale closure issues)
   const currentSessionIdRef = useRef<string | null>(null);
+  const organizationIdRef = useRef<string | undefined>(organizationId);
   
-  // Keep ref in sync with state
+  // Keep refs in sync
   useEffect(() => {
     currentSessionIdRef.current = currentSessionId;
   }, [currentSessionId]);
 
-  // Load sessions from localStorage on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Convert date strings back to Date objects
-        const sessionsWithDates = parsed.map((session: ChatSession) => ({
-          ...session,
-          createdAt: new Date(session.createdAt),
-          updatedAt: new Date(session.updatedAt),
-          messages: session.messages.map((msg: ChatMessage) => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp),
-          })),
-        }));
-        setSessions(sessionsWithDates);
-      }
-    } catch (error) {
-      console.error("Failed to load chat sessions:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    organizationIdRef.current = organizationId;
+  }, [organizationId]);
 
-  // Save sessions to localStorage whenever they change
+  // Load sessions from database on mount
   useEffect(() => {
-    if (!isLoading) {
+    const loadSessions = async () => {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+        setIsLoading(true);
+        const result = await getChatSessions({ organizationId });
+        
+        if (result.success && result.data) {
+          // Transform database format to context format
+          const transformedSessions: ChatSession[] = result.data.map((session: IChatSessionDoc) => ({
+            id: session._id.toString(),
+            title: session.title,
+            messages: session.messages.map((msg: IChatMessage, index: number) => ({
+              id: `${session._id}-${index}`,
+              role: msg.role,
+              content: msg.content,
+              timestamp: new Date(msg.timestamp),
+            })),
+            createdAt: new Date(session.createdAt),
+            updatedAt: new Date(session.updatedAt),
+            isPinned: session.isPinned,
+          }));
+          setSessions(transformedSessions);
+        }
       } catch (error) {
-        console.error("Failed to save chat sessions:", error);
+        console.error("Failed to load chat sessions:", error);
+        toast.error("Failed to load chat history");
+      } finally {
+        setIsLoading(false);
       }
-    }
-  }, [sessions, isLoading]);
+    };
 
-  // Create a new session
+    loadSessions();
+  }, [organizationId]);
+
+  // Create a new session (empty)
   const createSession = useCallback((): string => {
+    // Generate a temporary ID - will be replaced when message is added
+    const tempId = `temp-${Date.now()}`;
     const newSession: ChatSession = {
-      id: generateId(),
+      id: tempId,
       title: "New Chat",
       messages: [],
       createdAt: new Date(),
@@ -89,9 +96,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     };
 
     setSessions((prev) => [newSession, ...prev]);
-    currentSessionIdRef.current = newSession.id;
-    setCurrentSessionId(newSession.id);
-    return newSession.id;
+    currentSessionIdRef.current = tempId;
+    setCurrentSessionId(tempId);
+    return tempId;
   }, []);
 
   // Load an existing session
@@ -102,88 +109,178 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   // Delete a session
   const deleteSession = useCallback(
-    (sessionId: string) => {
+    async (sessionId: string) => {
+      // Optimistically remove from UI
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      
       if (currentSessionIdRef.current === sessionId) {
         currentSessionIdRef.current = null;
         setCurrentSessionId(null);
+      }
+
+      // Don't delete temp sessions from database
+      if (sessionId.startsWith("temp-")) return;
+
+      try {
+        const result = await deleteChatSession({ sessionId });
+        if (!result.success) {
+          toast.error("Failed to delete chat");
+        }
+      } catch (error) {
+        console.error("Failed to delete session:", error);
+        toast.error("Failed to delete chat");
       }
     },
     []
   );
 
   // Update session title
-  const updateSessionTitle = useCallback((sessionId: string, title: string) => {
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id === sessionId ? { ...s, title, updatedAt: new Date() } : s
-      )
-    );
-  }, []);
+  const updateSessionTitle = useCallback(
+    async (sessionId: string, title: string) => {
+      // Optimistically update UI
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === sessionId ? { ...s, title, updatedAt: new Date() } : s
+        )
+      );
+
+      // Don't update temp sessions in database
+      if (sessionId.startsWith("temp-")) return;
+
+      try {
+        const result = await updateChatSession({ sessionId, title });
+        if (!result.success) {
+          toast.error("Failed to update chat title");
+        }
+      } catch (error) {
+        console.error("Failed to update session title:", error);
+      }
+    },
+    []
+  );
 
   // Toggle pin status
-  const togglePinSession = useCallback((sessionId: string) => {
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id === sessionId
-          ? { ...s, isPinned: !s.isPinned, updatedAt: new Date() }
-          : s
-      )
-    );
-  }, []);
+  const togglePinSession = useCallback(
+    async (sessionId: string) => {
+      const session = sessions.find((s) => s.id === sessionId);
+      if (!session) return;
+
+      const newPinned = !session.isPinned;
+
+      // Optimistically update UI
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === sessionId
+            ? { ...s, isPinned: newPinned, updatedAt: new Date() }
+            : s
+        )
+      );
+
+      // Don't update temp sessions in database
+      if (sessionId.startsWith("temp-")) return;
+
+      try {
+        const result = await updateChatSession({ sessionId, isPinned: newPinned });
+        if (!result.success) {
+          toast.error("Failed to update pin status");
+        }
+      } catch (error) {
+        console.error("Failed to toggle pin:", error);
+      }
+    },
+    [sessions]
+  );
 
   // Add a message to the current session
   const addMessage = useCallback(
-    (message: Omit<ChatMessage, "id" | "timestamp">) => {
+    async (message: Omit<ChatMessage, "id" | "timestamp">) => {
       const newMessage: ChatMessage = {
         ...message,
-        id: generateId(),
+        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: new Date(),
       };
 
-      // Use the ref to get the latest session ID (avoids stale closure)
+      // Use the ref to get the latest session ID
       const sessionId = currentSessionIdRef.current;
+      const orgId = organizationIdRef.current;
 
-      // If no current session, create one first
-      if (!sessionId) {
-        const newSessionId = generateId();
-        const newSession: ChatSession = {
-          id: newSessionId,
-          title: message.role === "user" ? generateTitle(message.content) : "New Chat",
-          messages: [newMessage],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          isPinned: false,
-        };
-        
-        // Update ref immediately
-        currentSessionIdRef.current = newSessionId;
-        
-        // Update both states together
-        setSessions((prev) => [newSession, ...prev]);
-        setCurrentSessionId(newSessionId);
+      // If no current session or it's a temp session with no messages, create new in database
+      if (!sessionId || sessionId.startsWith("temp-")) {
+        try {
+          const result = await createSessionWithMessage({
+            role: message.role,
+            content: message.content,
+            organizationId: orgId,
+          });
+
+          if (result.success && result.data) {
+            const dbSession = result.data;
+            const newSessionId = dbSession._id.toString();
+
+            // Create the session object
+            const newSession: ChatSession = {
+              id: newSessionId,
+              title: dbSession.title,
+              messages: dbSession.messages.map((msg: IChatMessage, index: number) => ({
+                id: `${newSessionId}-${index}`,
+                role: msg.role,
+                content: msg.content,
+                timestamp: new Date(msg.timestamp),
+              })),
+              createdAt: new Date(dbSession.createdAt),
+              updatedAt: new Date(dbSession.updatedAt),
+              isPinned: dbSession.isPinned,
+            };
+
+            // Update ref immediately
+            currentSessionIdRef.current = newSessionId;
+
+            // Remove temp session if exists and add new one
+            setSessions((prev) => {
+              const filtered = prev.filter((s) => !s.id.startsWith("temp-"));
+              return [newSession, ...filtered];
+            });
+            setCurrentSessionId(newSessionId);
+          } else {
+            toast.error("Failed to save message");
+          }
+        } catch (error) {
+          console.error("Failed to create session:", error);
+          toast.error("Failed to save message");
+        }
         return;
       }
 
-      // Add to existing session
+      // Add to existing session - optimistic update
       setSessions((prev) =>
         prev.map((s) => {
           if (s.id !== sessionId) return s;
 
-          const isFirstUserMessage =
-            message.role === "user" &&
-            s.messages.filter((m) => m.role === "user").length === 0;
-
           return {
             ...s,
             messages: [...s.messages, newMessage],
-            title: isFirstUserMessage ? generateTitle(message.content) : s.title,
             updatedAt: new Date(),
           };
         })
       );
+
+      // Persist to database
+      try {
+        const result = await addMessageToSession({
+          sessionId,
+          role: message.role,
+          content: message.content,
+        });
+
+        if (!result.success) {
+          toast.error("Failed to save message");
+        }
+      } catch (error) {
+        console.error("Failed to add message:", error);
+        toast.error("Failed to save message");
+      }
     },
-    [] // No dependencies needed since we use ref
+    []
   );
 
   // Clear current session (start fresh)
@@ -208,10 +305,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       if (recentSessions.length === 0) return "";
 
       const context = recentSessions
-        .map((session) => {
+        .map((session: ChatSession) => {
           const summary = session.messages
             .slice(0, 4)
-            .map((m) => `${m.role}: ${m.content.substring(0, 100)}`)
+            .map((m: ChatMessage) => `${m.role}: ${m.content.substring(0, 100)}`)
             .join("\n");
           return `Previous conversation "${session.title}":\n${summary}`;
         })
@@ -292,7 +389,7 @@ export function useGroupedSessions(): GroupedSessions {
       older: [],
     };
 
-    sessions.forEach((session) => {
+    sessions.forEach((session: ChatSession) => {
       if (session.isPinned) {
         grouped.pinned.push(session);
         return;

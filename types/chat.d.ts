@@ -1,5 +1,5 @@
 // Chat Message Type
-interface ChatMessage {
+declare interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
@@ -7,7 +7,7 @@ interface ChatMessage {
 }
 
 // Chat Session Type
-interface ChatSession {
+declare interface ChatSession {
   id: string;
   title: string;
   messages: ChatMessage[];
@@ -17,14 +17,14 @@ interface ChatSession {
 }
 
 // Chat Context State
-interface ChatContextState {
+declare interface ChatContextState {
   sessions: ChatSession[];
   currentSessionId: string | null;
   isLoading: boolean;
 }
 
 // Chat Context Actions
-interface ChatContextActions {
+declare interface ChatContextActions {
   createSession: () => string;
   loadSession: (sessionId: string) => void;
   deleteSession: (sessionId: string) => void;
@@ -37,10 +37,10 @@ interface ChatContextActions {
 }
 
 // Combined Chat Context
-type ChatContextType = ChatContextState & ChatContextActions;
+declare type ChatContextType = ChatContextState & ChatContextActions;
 
 // Grouped Sessions for Display
-interface GroupedSessions {
+declare interface GroupedSessions {
   pinned: ChatSession[];
   today: ChatSession[];
   yesterday: ChatSession[];

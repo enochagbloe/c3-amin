@@ -1,6 +1,6 @@
 "use client";
 
-import { ChatProvider } from "@/lib/context/ChatContext";
+import { ChatProvider } from "../../../lib/context/ChatContext";
 
 export default function PromptLayout({
   children,
