@@ -21,7 +21,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useChat, useGroupedSessions, useChatSafe } from "@/lib/context/ChatContext";
+import { useChat, useGroupedSessions, useChatSafe } from "../../lib/context/ChatContext";
 import { ChatSessionItem } from "./ChatSessionItem";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";

@@ -11,7 +11,7 @@ import {
   ChatTypingIndicator,
   ChatSidebar,
 } from "@/components/chat";
-import { useChatSafe } from "@/lib/context/ChatContext";
+import { useChatSafe } from "../../../lib/context/ChatContext";
 import handleError from "@/lib/handler/error";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -38,7 +38,7 @@ const ChatPage = () => {
   // This ensures we always have the latest data when context re-renders
   const currentSession = useMemo(() => {
     if (!chatContext?.currentSessionId || !chatContext?.sessions) return null;
-    return chatContext.sessions.find((s) => s.id === chatContext.currentSessionId) || null;
+    return chatContext.sessions.find((s: ChatSession) => s.id === chatContext.currentSessionId) || null;
   }, [chatContext?.currentSessionId, chatContext?.sessions]);
   
   const messages = useMemo(() => currentSession?.messages ?? [], [currentSession?.messages]);
@@ -144,7 +144,7 @@ const ChatPage = () => {
 
           {/* Messages */}
           <AnimatePresence mode="popLayout">
-            {messages.map((message) => (
+            {messages.map((message: ChatMessage) => (
               <ChatMessage
                 key={message.id}
                 role={message.role}
