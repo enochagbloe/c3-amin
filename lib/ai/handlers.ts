@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 /*AI Intent Handlers Handle specific intents with database operations*/
@@ -21,6 +22,13 @@ interface HandlerResult {
   success: boolean;
   data: string;
   metadata?: Record<string, unknown>;
+}
+
+// Organization context for handlers
+interface OrganizationHandlerContext {
+  organizationId: string;
+  organizationName?: string;
+  userRole?: string;
 }
 
 // Parse relative date strings like "last Tuesday", "yesterday", "2 days ago"
@@ -465,6 +473,438 @@ export async function getFinancialContext(period: string = "month") {
     };
   } catch (error) {
     console.error("Error getting financial context:", error);
+    return null;
+  }
+}
+
+// ============================================
+// ORGANIZATION-SPECIFIC HANDLERS
+// ============================================
+
+/**
+ * Handle adding an expense for an organization
+ */
+export async function handleOrgAddExpense(
+  parsed: ParsedIntent,
+  orgContext: OrganizationHandlerContext
+): Promise<HandlerResult> {
+  const { data, reply } = parsed;
+
+  const name = data.name as string;
+  const amount = Number(data.amount);
+  const category = (data.category as string) || "other";
+  const description = (data.description as string) || "";
+  const dateStr = data.date as string;
+
+  if (!name || isNaN(amount) || amount <= 0) {
+    return {
+      success: false,
+      data: "I need a valid name and amount to add this organization expense. For example: 'We spent $500 on office supplies'",
+    };
+  }
+
+  try {
+    const date = dateStr ? parseRelativeDate(dateStr) : new Date();
+
+    const expense = await createBudgetExpense({
+      name,
+      amount: String(amount),
+      date,
+      description,
+      organizationId: orgContext.organizationId,
+    } as any);
+
+    if (!expense.success) {
+      return {
+        success: false,
+        data: "I couldn't save that organization expense. Please try again.",
+      };
+    }
+
+    return {
+      success: true,
+      data:
+        reply ||
+        `✅ Added ${formatCurrency(amount)} for "${name}" to ${orgContext.organizationName || "organization"} expenses`,
+      metadata: {
+        expense: expense.data,
+        category,
+        organizationId: orgContext.organizationId,
+      },
+    };
+  } catch (error) {
+    console.error("Error adding organization expense:", error);
+    return {
+      success: false,
+      data: "Something went wrong while saving the organization expense. Please try again.",
+    };
+  }
+}
+
+/**
+ * Handle adding income for an organization
+ */
+export async function handleOrgAddIncome(
+  parsed: ParsedIntent,
+  orgContext: OrganizationHandlerContext
+): Promise<HandlerResult> {
+  const { data, reply } = parsed;
+
+  const name = data.name as string;
+  const amount = Number(data.amount);
+  const category = (data.category as string) || "other";
+  const source = (data.source as string) || category || "other";
+  const description = (data.description as string) || "";
+  const dateStr = data.date as string;
+
+  if (!name || isNaN(amount) || amount <= 0) {
+    return {
+      success: false,
+      data: "I need a valid description and amount to log this organization income. For example: 'Received 5000 donation'",
+    };
+  }
+
+  try {
+    const date = dateStr ? parseRelativeDate(dateStr) : new Date();
+
+    const income = await CreateIncome({
+      name,
+      amount: String(amount),
+      source: source || "other",
+      description,
+      date,
+      organizationId: orgContext.organizationId,
+    } as any);
+
+    if (!income.success) {
+      return {
+        success: false,
+        data: "I couldn't save that organization income. Please try again.",
+      };
+    }
+
+    const formattedDate = date.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    });
+
+    return {
+      success: true,
+      data:
+        reply ||
+        `💰 Logged ${formatCurrency(amount)} income for "${name}" to ${orgContext.organizationName || "organization"} on ${formattedDate}`,
+      metadata: {
+        income: income.data,
+        category,
+        source,
+        organizationId: orgContext.organizationId,
+      },
+    };
+  } catch (error) {
+    console.error("Error adding organization income:", error);
+    return {
+      success: false,
+      data: "Something went wrong while logging the organization income. Please try again.",
+    };
+  }
+}
+
+/**
+ * Handle spending queries for an organization
+ */
+export async function handleOrgQuerySpending(
+  parsed: ParsedIntent,
+  orgContext: OrganizationHandlerContext
+): Promise<HandlerResult> {
+  const { data, reply } = parsed;
+  const period = (data.period as string) || "month";
+  const status = data.status as string | undefined;
+
+  try {
+    const { start, end } = getDateRange(period);
+
+    const whereClause: Record<string, unknown> = {
+      date: { gte: start, lte: end },
+      amount: { gte: 0 },
+      organizationId: orgContext.organizationId, // Organization-specific!
+    };
+
+    if (status) {
+      whereClause.status = status;
+    }
+
+    const expenses = await prisma.expenseTracker.findMany({
+      where: whereClause,
+      orderBy: { date: "desc" },
+    });
+
+    const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const count = expenses.length;
+
+    // Group by name for insights
+    const byName: Record<string, number> = {};
+    expenses.forEach((e) => {
+      byName[e.name] = (byName[e.name] || 0) + e.amount;
+    });
+
+    const topExpenses = Object.entries(byName)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    // Count by status
+    const pendingCount = expenses.filter((e) => e.status === "pending").length;
+    const approvedCount = expenses.filter((e) => e.status === "approved").length;
+    const rejectedCount = expenses.filter((e) => e.status === "rejected").length;
+
+    let response = "";
+    if (count === 0) {
+      response = `🎉 No expenses logged for ${orgContext.organizationName || "the organization"} this ${period}.`;
+    } else {
+      response = `**${orgContext.organizationName || "Organization"} Spending Summary (${period})**\n\n`;
+      response += `💰 Total: ${formatCurrency(total)} across ${count} expense${count === 1 ? "" : "s"}\n\n`;
+      response += `📊 Status: ${pendingCount} pending, ${approvedCount} approved, ${rejectedCount} rejected\n\n`;
+
+      if (topExpenses.length > 0) {
+        response += `**Top Expenses:**\n`;
+        topExpenses.forEach(([name, amount], i) => {
+          response += `${i + 1}. ${name}: ${formatCurrency(amount)}\n`;
+        });
+      }
+    }
+
+    return {
+      success: true,
+      data: reply || response,
+      metadata: {
+        total,
+        count,
+        period,
+        pendingCount,
+        approvedCount,
+        rejectedCount,
+        topExpenses,
+        organizationId: orgContext.organizationId,
+      },
+    };
+  } catch (error) {
+    console.error("Error querying organization spending:", error);
+    return {
+      success: false,
+      data: "I couldn't retrieve the organization's expense data. Please try again.",
+    };
+  }
+}
+
+/**
+ * Handle income queries for an organization
+ */
+export async function handleOrgQueryIncome(
+  parsed: ParsedIntent,
+  orgContext: OrganizationHandlerContext
+): Promise<HandlerResult> {
+  const { data, reply } = parsed;
+  const period = (data.period as string) || "month";
+
+  try {
+    const { start, end } = getDateRange(period);
+
+    const incomeRecords = await prisma.income.findMany({
+      where: {
+        date: { gte: start, lte: end },
+        organizationId: orgContext.organizationId, // Organization-specific!
+      },
+      orderBy: { date: "desc" },
+    });
+
+    const total = incomeRecords.reduce((sum, i) => sum + i.amount, 0);
+    const count = incomeRecords.length;
+
+    // Group by source
+    const bySource: Record<string, number> = {};
+    incomeRecords.forEach((i) => {
+      bySource[i.source] = (bySource[i.source] || 0) + i.amount;
+    });
+
+    const topSources = Object.entries(bySource)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    let response = "";
+    if (count === 0) {
+      response = `No income logged for ${orgContext.organizationName || "the organization"} this ${period}. Would you like to add some?`;
+    } else {
+      response = `**${orgContext.organizationName || "Organization"} Income Summary (${period})**\n\n`;
+      response += `💰 Total Income: ${formatCurrency(total)} from ${count} source${count === 1 ? "" : "s"}\n\n`;
+
+      if (topSources.length > 0) {
+        response += `**Top Sources:**\n`;
+        topSources.forEach(([source, amount], i) => {
+          response += `${i + 1}. ${source}: ${formatCurrency(amount)}\n`;
+        });
+      }
+    }
+
+    return {
+      success: true,
+      data: reply || response,
+      metadata: {
+        total,
+        count,
+        period,
+        topSources,
+        organizationId: orgContext.organizationId,
+      },
+    };
+  } catch (error) {
+    console.error("Error querying organization income:", error);
+    return {
+      success: false,
+      data: "I couldn't retrieve the organization's income data. Please try again.",
+    };
+  }
+}
+
+/**
+ * Handle financial summary for an organization
+ */
+export async function handleOrgFinancialSummary(
+  parsed: ParsedIntent,
+  orgContext: OrganizationHandlerContext
+): Promise<HandlerResult> {
+  const { data, reply } = parsed;
+  const period = (data.period as string) || "month";
+
+  try {
+    const { start, end } = getDateRange(period);
+
+    // Get expenses
+    const expenses = await prisma.expenseTracker.findMany({
+      where: {
+        date: { gte: start, lte: end },
+        organizationId: orgContext.organizationId,
+      },
+      orderBy: { date: "desc" },
+    });
+
+    // Get income
+    const incomeRecords = await prisma.income.findMany({
+      where: {
+        date: { gte: start, lte: end },
+        organizationId: orgContext.organizationId,
+      },
+    });
+
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalIncome = incomeRecords.reduce((sum, i) => sum + i.amount, 0);
+    const netBalance = totalIncome - totalExpenses;
+
+    // Status breakdown
+    const pendingCount = expenses.filter((e) => e.status === "pending").length;
+    const approvedCount = expenses.filter((e) => e.status === "approved").length;
+    const rejectedCount = expenses.filter((e) => e.status === "rejected").length;
+
+    // Daily average
+    const daysInPeriod =
+      Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) || 1;
+    const dailyAverage = totalExpenses / daysInPeriod;
+
+    let response = `📈 **${orgContext.organizationName || "Organization"} Financial Summary (${period})**\n\n`;
+    response += `💰 Income: ${formatCurrency(totalIncome)} (${incomeRecords.length} sources)\n`;
+    response += `💸 Expenses: ${formatCurrency(totalExpenses)} (${expenses.length} transactions)\n`;
+    response += `${netBalance >= 0 ? "✅" : "⚠️"} Net: ${formatCurrency(netBalance)}\n\n`;
+    response += `📊 Expense Status: ${pendingCount} pending, ${approvedCount} approved, ${rejectedCount} rejected\n`;
+    response += `📆 Daily Average Spending: ${formatCurrency(dailyAverage)}`;
+
+    if (netBalance < 0) {
+      response += `\n\n💡 Note: Organization is spending more than earning. Consider reviewing expenses.`;
+    } else if (netBalance > 0) {
+      response += `\n\n🎉 Great! Organization has a positive balance of ${formatCurrency(netBalance)} this ${period}.`;
+    }
+
+    return {
+      success: true,
+      data: reply || response,
+      metadata: {
+        totalExpenses,
+        totalIncome,
+        netBalance,
+        dailyAverage,
+        pendingCount,
+        approvedCount,
+        rejectedCount,
+        period,
+        organizationId: orgContext.organizationId,
+      },
+    };
+  } catch (error) {
+    console.error("Error getting organization financial summary:", error);
+    return {
+      success: false,
+      data: "I couldn't generate the organization's financial summary. Please try again.",
+    };
+  }
+}
+
+/**
+ * Get financial context for organization AI
+ */
+export async function getOrgFinancialContext(
+  organizationId: string,
+  period: string = "month"
+) {
+  try {
+    const { start, end } = getDateRange(period);
+
+    // Get expenses
+    const expenses = await prisma.expenseTracker.findMany({
+      where: {
+        date: { gte: start, lte: end },
+        organizationId,
+      },
+    });
+
+    // Get income
+    const incomeRecords = await prisma.income.findMany({
+      where: {
+        date: { gte: start, lte: end },
+        organizationId,
+      },
+    });
+
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalIncome = incomeRecords.reduce((sum, i) => sum + i.amount, 0);
+
+    // Group expenses by name (as proxy for category)
+    const byCategory: Record<string, number> = {};
+    expenses.forEach((e) => {
+      const cat = e.name.split(" ")[0].toLowerCase();
+      byCategory[cat] = (byCategory[cat] || 0) + e.amount;
+    });
+
+    const topCategories = Object.entries(byCategory)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([category, amount]) => ({ category, amount }));
+
+    // Status counts
+    const pendingExpenses = expenses.filter((e) => e.status === "pending").length;
+    const approvedExpenses = expenses.filter((e) => e.status === "approved").length;
+    const rejectedExpenses = expenses.filter((e) => e.status === "rejected").length;
+
+    return {
+      totalExpenses,
+      totalIncome,
+      expenseCount: expenses.length,
+      incomeCount: incomeRecords.length,
+      topCategories,
+      period,
+      pendingExpenses,
+      approvedExpenses,
+      rejectedExpenses,
+    };
+  } catch (error) {
+    console.error("Error getting organization financial context:", error);
     return null;
   }
 }

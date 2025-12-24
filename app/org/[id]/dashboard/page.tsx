@@ -2,11 +2,13 @@
 
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getOrganization } from "@/lib/actions/organization.actions";
+import { getOrganization } from "@/lib/actions/org/organization.actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, DollarSign, Clock, CheckCircle, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import OrgChatPage from "../propmt/page";
 
 type Organization = {
   id: string;
@@ -75,7 +77,19 @@ const OrgDashboardPage = () => {
   const approvedExpenses = organization.expenses.filter((exp) => exp.status === "approved").length;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+  // dashboard
+    <Tabs defaultValue="dashboard" className="">
+          <TabsList className="">
+           <TabsTrigger value="dashboard" className="">
+              Dashboard
+           </TabsTrigger>
+           <TabsTrigger value="prompt" className="flex-1 md:flex-none">
+              Prompt
+           </TabsTrigger>
+          </TabsList>
+        <TabsContent value="dashboard" className="w-full">
+            <main>
+     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -199,6 +213,13 @@ const OrgDashboardPage = () => {
         </Card>
       </motion.div>
     </div>
+    </main>
+        </TabsContent>
+        <TabsContent value="propmt" className="w-full">
+       {/** Prompt content goes here */}
+          <OrgChatPage/>
+        </TabsContent>
+        </Tabs>
   );
 };
 

@@ -13,7 +13,7 @@ import Link from "next/link";
 import { Button } from "../../ui/button";
 import { ROUTES } from "@/constant/route";
 import OrgSidebar from "./OrgSidebar";
-import { getOrganization } from "@/lib/actions/organization.actions";
+import { getOrganization } from "@/lib/actions/org/organization.actions";
 
 const OrgMobileSidebar = async () => {
 const org = await getOrganization({ organizationId: "orgId" });

@@ -2,7 +2,7 @@ import handleError from "@/lib/handler/error";
 import {
   updateOrganizationMemberRole,
   removeOrganizationMember,
-} from "@/lib/actions/organization.actions";
+} from "@/lib/actions/org/organization.actions";
 import { NextResponse } from "next/server";
 
 /**

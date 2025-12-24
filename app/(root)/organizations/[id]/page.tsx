@@ -3,7 +3,7 @@
 import React from "react";
 import { useParams } from "next/navigation";
 import { useRouter as useNavRouter } from "next/navigation";
-import { getOrganization } from "@/lib/actions/organization.actions";
+import { getOrganization } from "@/lib/actions/org/organization.actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

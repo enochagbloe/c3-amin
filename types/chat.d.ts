@@ -14,6 +14,8 @@ declare interface ChatSession {
   createdAt: Date;
   updatedAt: Date;
   isPinned?: boolean;
+  organizationId?: string;
+  organizationName?: string;
 }
 
 // Chat Context State
@@ -46,4 +48,49 @@ declare interface GroupedSessions {
   yesterday: ChatSession[];
   lastWeek: ChatSession[];
   older: ChatSession[];
+}
+
+// Organization AI Context
+declare interface OrganizationAIContext {
+  organizationId: string;
+  organizationName: string;
+  industry: string;
+  userRole: string;
+  memberCount: number;
+}
+
+// Organization AI Response
+declare interface OrganizationAIResponse {
+  success: boolean;
+  data: string;
+  intent: string;
+  confidence: number;
+  metadata?: Record<string, unknown>;
+  suggestedActions?: string[];
+  followUpQuestions?: string[];
+  needsClarification?: boolean;
+  organizationId: string;
+  organizationName: string;
+  analytics?: OrganizationFinancialData;
+}
+
+// Organization Financial Data
+declare interface OrganizationFinancialData {
+  totalExpenses: number;
+  totalIncome: number;
+  expenseCount: number;
+  incomeCount: number;
+  topCategories: { category: string; amount: number }[];
+  period: string;
+  pendingExpenses: number;
+  approvedExpenses: number;
+  rejectedExpenses: number;
+}
+
+// Organization AI Request
+declare interface OrganizationAIRequest {
+  message: string;
+  context?: ChatMessage[];
+  model?: "fast" | "balanced" | "powerful";
+  includeFinancialContext?: boolean;
 }

@@ -30,7 +30,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
-import { getOrganization } from "@/lib/actions/organization.actions";
+import { getOrganization } from "@/lib/actions/org/organization.actions";
 
 const OrgSettingsPage = () => {
   const params = useParams();

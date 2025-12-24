@@ -6,7 +6,7 @@ import { IconBuilding, IconPlus, IconUsers, IconFileInvoice } from "@tabler/icon
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getUserOrganizations } from "@/lib/actions/organization.actions";
+import { getUserOrganizations } from "@/lib/actions/org/organization.actions";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import CreateOrganizationDialog from "@/components/organizations/CreateOrganizationDialog";
