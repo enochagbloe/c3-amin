@@ -10,7 +10,7 @@ export interface IChatMessage {
 // Chat Session interface
 export interface IChatSession {
   userId: Types.ObjectId;
-  organizationId?: Types.ObjectId;
+  organizationId?: string; // PostgreSQL Organization UUID
   title: string;
   messages: IChatMessage[];
   isPinned: boolean;
@@ -52,8 +52,7 @@ const ChatSessionSchema = new Schema<IChatSession>(
       index: true 
     },
     organizationId: { 
-      type: Schema.Types.ObjectId, 
-      ref: "Organization",
+      type: String, // PostgreSQL UUID reference
       index: true 
     },
     title: { 

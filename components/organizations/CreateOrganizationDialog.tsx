@@ -42,7 +42,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { CreateOrganizationSchema } from "@/lib/validations";
-import { createOrganization } from "@/lib/actions/organization.actions";
+import { createOrganization } from "@/lib/actions/org/organization.actions";
 
 interface CreateOrganizationDialogProps {
   open: boolean;

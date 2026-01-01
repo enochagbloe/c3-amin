@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getUserOrganizations } from "@/lib/actions/organization.actions";
+import { getUserOrganizations } from "@/lib/actions/org/organization.actions";
 import { toast } from "sonner";
 
 type Organization = {

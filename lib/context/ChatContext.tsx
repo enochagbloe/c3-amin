@@ -25,11 +25,12 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 // Props for the provider
 interface ChatProviderProps {
   children: React.ReactNode;
-  organizationId?: string; // Optional: for org-specific chats
+  organizationId?: string | undefined; // Optional: for org-specific chats
+  organizationName?:string;
 }
 
 // Provider component
-export function ChatProvider({ children, organizationId }: ChatProviderProps) {
+export function ChatProvider({ children, organizationId, organizationName }: ChatProviderProps) {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,6 +68,8 @@ export function ChatProvider({ children, organizationId }: ChatProviderProps) {
             })),
             createdAt: new Date(session.createdAt),
             updatedAt: new Date(session.updatedAt),
+            organizationName,
+            organizationId,
             isPinned: session.isPinned,
           }));
           setSessions(transformedSessions);
@@ -80,7 +83,7 @@ export function ChatProvider({ children, organizationId }: ChatProviderProps) {
     };
 
     loadSessions();
-  }, [organizationId]);
+  }, [organizationId, organizationName]);
 
   // Create a new session (empty)
   const createSession = useCallback((): string => {
@@ -93,13 +96,15 @@ export function ChatProvider({ children, organizationId }: ChatProviderProps) {
       createdAt: new Date(),
       updatedAt: new Date(),
       isPinned: false,
+      organizationId,
+      organizationName
     };
 
     setSessions((prev) => [newSession, ...prev]);
     currentSessionIdRef.current = tempId;
     setCurrentSessionId(tempId);
     return tempId;
-  }, []);
+  }, [organizationId, organizationName]);
 
   // Load an existing session
   const loadSession = useCallback((sessionId: string) => {
@@ -229,6 +234,8 @@ export function ChatProvider({ children, organizationId }: ChatProviderProps) {
               })),
               createdAt: new Date(dbSession.createdAt),
               updatedAt: new Date(dbSession.updatedAt),
+              organizationId,
+              organizationName,
               isPinned: dbSession.isPinned,
             };
 
@@ -280,7 +287,7 @@ export function ChatProvider({ children, organizationId }: ChatProviderProps) {
         toast.error("Failed to save message");
       }
     },
-    []
+    [organizationId, organizationName]
   );
 
   // Clear current session (start fresh)

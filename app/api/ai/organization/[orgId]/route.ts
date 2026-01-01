@@ -2,18 +2,19 @@
 import { NextResponse } from "next/server";
 import { OpenRouter } from "@openrouter/sdk";
 import { auth } from "@/auth";
-import { 
-  SYSTEM_PROMPT, 
-  CONTEXT_PROMPT, 
-  ANALYTICS_PROMPT 
+import prisma from "@/lib/prisma";
+import {
+  CONTEXT_PROMPT,
+  ORG_SYSTEM_PROMPT,
+  ORG_ANALYTICS_PROMPT,
 } from "@/lib/ai/prompts";
 import {
-  handleAddExpense,
-  handleAddIncome,
-  handleQuerySpending,
-  handleQueryIncome,
-  handleFinancialSummary,
-  getFinancialContext,
+  handleOrgAddExpense,
+  handleOrgAddIncome,
+  handleOrgQuerySpending,
+  handleOrgQueryIncome,
+  handleOrgFinancialSummary,
+  getOrgFinancialContext,
 } from "@/lib/ai/handlers";
 
 // Initialize OpenRouter client
@@ -21,17 +22,17 @@ const client = new OpenRouter({
   apiKey: process.env.OPEN_AI_KEYS!,
 });
 
-// Available AI models (can be configured)
+// Available AI models
 const AI_MODELS = {
   fast: "anthropic/claude-3-haiku",
   balanced: "anthropic/claude-3-5-sonnet",
   powerful: "anthropic/claude-3-opus",
 } as const;
 
-// Rate limiting (simple in-memory, use Redis for production)
+// Rate limiting
 const rateLimits = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT = 50; // requests per minute
-const RATE_WINDOW = 60 * 1000; // 1 minute
+const RATE_LIMIT = 50;
+const RATE_WINDOW = 60 * 1000;
 
 function checkRateLimit(userId: string): boolean {
   const now = Date.now();
@@ -53,21 +54,17 @@ function checkRateLimit(userId: string): boolean {
 // Safe JSON parser with fallback
 function safeJSON(text: string): any {
   try {
-    // Try to extract JSON from markdown code blocks
     const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[1].trim());
     }
-    // Try direct parse
     return JSON.parse(text);
   } catch {
-    // Try to find JSON object in text
     const objectMatch = text.match(/\{[\s\S]*\}/);
     if (objectMatch) {
       try {
         return JSON.parse(objectMatch[0]);
       } catch {
-        // If JSON parsing still fails, try to extract key fields manually
         return extractFromMalformedJSON(objectMatch[0]);
       }
     }
@@ -75,14 +72,11 @@ function safeJSON(text: string): any {
   }
 }
 
-// Extract data from malformed JSON (when AI includes unescaped newlines in strings)
 function extractFromMalformedJSON(text: string): any {
   try {
-    // Try to extract intent
     const intentMatch = text.match(/"intent"\s*:\s*"([^"]+)"/);
     const confidenceMatch = text.match(/"confidence"\s*:\s*([\d.]+)/);
-    
-    // Extract reply - handle multi-line content
+
     let reply = "";
     const replyMatch = text.match(/"reply"\s*:\s*"([\s\S]*?)(?:"\s*[,}]|",\s*")/);
     if (replyMatch) {
@@ -91,8 +85,7 @@ function extractFromMalformedJSON(text: string): any {
         .replace(/\\"/g, '"')
         .replace(/\\\\/g, "\\");
     }
-    
-    // If we at least have an intent and reply, return a parsed object
+
     if (intentMatch && reply) {
       return {
         intent: intentMatch[1],
@@ -100,60 +93,88 @@ function extractFromMalformedJSON(text: string): any {
         reply: reply,
         needs_clarification: false,
         suggested_actions: null,
+        data: {},
       };
     }
-    
-    // Last resort: just return the reply if we can find it
-    if (reply) {
-      return {
-        intent: "general",
-        confidence: 0.5,
-        reply: reply,
-        needs_clarification: false,
-        suggested_actions: null,
-      };
-    }
-    
     return null;
   } catch {
     return null;
   }
 }
 
-// Build conversation history string
-function buildConversationHistory(context?: string): string {
-  if (!context) return "";
-  
-  // Parse and format context for the AI
-  try {
-    // Context might be a formatted string of previous conversations
-    return context;
-  } catch {
+// Build conversation history
+function buildConversationHistory(context: any[]): string {
+  if (!context || !Array.isArray(context) || context.length === 0) {
     return "";
   }
+
+  return context
+    .slice(-10) // Last 10 messages for context
+    .map((msg: any) => `${msg.role}: ${msg.content}`)
+    .join("\n");
 }
 
-// Main POST handler
-export async function POST(request: Request) {
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ orgId: string }> }
+) {
   try {
-    // Authentication
+    const { orgId } = await params;
+
+    // Authenticate user
     const session = await auth();
-    const userId = session?.user?.id || "anonymous";
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    const userId = session.user.id;
+
+    // Verify user is a member of this organization
+    const membership = await prisma.organizationMember.findUnique({
+      where: {
+        userId_organizationId: {
+          userId,
+          organizationId: orgId,
+        },
+      },
+    });
+
+    if (!membership) {
+      return NextResponse.json(
+        { success: false, error: "You are not a member of this organization" },
+        { status: 403 }
+      );
+    }
+
+    // Get organization details
+    const organization = await prisma.organization.findUnique({
+      where: { id: orgId },
+      include: {
+        members: true,
+      },
+    });
+
+    if (!organization) {
+      return NextResponse.json(
+        { success: false, error: "Organization not found" },
+        { status: 404 }
+      );
+    }
 
     // Rate limiting
     if (!checkRateLimit(userId)) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: "Rate limit exceeded. Please wait a moment." 
-        },
+        { success: false, error: "Rate limit exceeded. Please wait a moment." },
         { status: 429 }
       );
     }
 
     // Parse request
     const body = await request.json();
-    const { 
+    const {
       message,
       context,
       model = "fast",
@@ -167,8 +188,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // Build enhanced prompt
-    let enhancedSystemPrompt = SYSTEM_PROMPT;
+    // Build organization context
+    const orgContext = {
+      organizationId: orgId,
+      organizationName: organization.name,
+      industry: organization.industry,
+      userRole: membership.role,
+      memberCount: organization.members.length,
+    };
+
+    // Build enhanced prompt with organization context
+    let enhancedSystemPrompt = ORG_SYSTEM_PROMPT(orgContext);
 
     // Add conversation context
     const conversationHistory = buildConversationHistory(context);
@@ -176,16 +206,17 @@ export async function POST(request: Request) {
       enhancedSystemPrompt += "\n\n" + CONTEXT_PROMPT(conversationHistory);
     }
 
-    // Add financial context for smarter responses
+    // Add organization financial context
     if (includeFinancialContext) {
-      const financialData = await getFinancialContext("month");
+      const financialData = await getOrgFinancialContext(orgId, "month");
       if (financialData) {
-        enhancedSystemPrompt += "\n\n" + ANALYTICS_PROMPT(financialData);
+        enhancedSystemPrompt += "\n\n" + ORG_ANALYTICS_PROMPT(financialData);
       }
     }
 
     // Select model
-    const selectedModel = AI_MODELS[model as keyof typeof AI_MODELS] || AI_MODELS.fast;
+    const selectedModel =
+      AI_MODELS[model as keyof typeof AI_MODELS] || AI_MODELS.fast;
 
     // Call AI
     const completion = await client.chat.send({
@@ -198,38 +229,31 @@ export async function POST(request: Request) {
       maxTokens: 1024,
     });
 
-    const rawResponse = completion.choices[0]?.message?.content;
-
-    if (typeof rawResponse !== "string") {
-      return NextResponse.json({
-        success: true,
-        data: "I'm having trouble processing that. Could you rephrase your question?",
-      });
-    }
-
     // Parse AI response
-    const parsed = safeJSON(rawResponse);
+    const rawResponse =
+      completion.choices?.[0]?.message?.content || "I couldn't process that.";
+    const parsed = safeJSON(rawResponse as any);
 
     if (!parsed) {
-      // AI didn't return valid JSON, return raw response
+      // Return raw response if JSON parsing fails
       return NextResponse.json({
         success: true,
         data: rawResponse,
-        raw: true,
+        intent: "general",
+        confidence: 0.5,
+        organizationId: orgId,
+        organizationName: organization.name,
       });
     }
 
     const intent = parsed.intent || "general";
     const confidence = parsed.confidence || 0.5;
-    const reply = parsed.reply || "I'm here to help!";
+    const reply = parsed.reply || rawResponse;
 
-    // Log for debugging (remove in production)
-    console.log(`[AI] Intent: ${intent} (${(confidence * 100).toFixed(0)}%) - ${message.substring(0, 50)}...`);
-
-    // Route to appropriate handler based on intent
+    // Route to organization-specific handlers
     switch (intent) {
       case "add_expense":
-        const expenseResult = await handleAddExpense(parsed);
+        const expenseResult = await handleOrgAddExpense(parsed, orgContext);
         return NextResponse.json({
           success: expenseResult.success,
           data: expenseResult.data,
@@ -237,10 +261,12 @@ export async function POST(request: Request) {
           confidence,
           metadata: expenseResult.metadata,
           suggestedActions: parsed.suggested_actions,
+          organizationId: orgId,
+          organizationName: organization.name,
         });
 
       case "add_income":
-        const incomeResult = await handleAddIncome(parsed);
+        const incomeResult = await handleOrgAddIncome(parsed, orgContext);
         return NextResponse.json({
           success: incomeResult.success,
           data: incomeResult.data,
@@ -248,10 +274,12 @@ export async function POST(request: Request) {
           confidence,
           metadata: incomeResult.metadata,
           suggestedActions: parsed.suggested_actions,
+          organizationId: orgId,
+          organizationName: organization.name,
         });
 
       case "query_spending":
-        const spendingResult = await handleQuerySpending(parsed);
+        const spendingResult = await handleOrgQuerySpending(parsed, orgContext);
         return NextResponse.json({
           success: spendingResult.success,
           data: spendingResult.data,
@@ -259,10 +287,12 @@ export async function POST(request: Request) {
           confidence,
           metadata: spendingResult.metadata,
           suggestedActions: parsed.suggested_actions,
+          organizationId: orgId,
+          organizationName: organization.name,
         });
 
       case "query_income":
-        const incomeQueryResult = await handleQueryIncome(parsed);
+        const incomeQueryResult = await handleOrgQueryIncome(parsed, orgContext);
         return NextResponse.json({
           success: incomeQueryResult.success,
           data: incomeQueryResult.data,
@@ -270,10 +300,12 @@ export async function POST(request: Request) {
           confidence,
           metadata: incomeQueryResult.metadata,
           suggestedActions: parsed.suggested_actions,
+          organizationId: orgId,
+          organizationName: organization.name,
         });
 
       case "financial_summary":
-        const summaryResult = await handleFinancialSummary(parsed);
+        const summaryResult = await handleOrgFinancialSummary(parsed, orgContext);
         return NextResponse.json({
           success: summaryResult.success,
           data: summaryResult.data,
@@ -281,6 +313,8 @@ export async function POST(request: Request) {
           confidence,
           metadata: summaryResult.metadata,
           suggestedActions: parsed.suggested_actions,
+          organizationId: orgId,
+          organizationName: organization.name,
         });
 
       case "budget_advice":
@@ -293,76 +327,53 @@ export async function POST(request: Request) {
           actionData: parsed.data,
           suggestedActions: parsed.suggested_actions,
           followUpQuestions: parsed.follow_up_questions,
+          organizationId: orgId,
+          organizationName: organization.name,
         });
 
-      case "schedule_meeting":
+      case "team_analytics":
+        // Get team expense breakdown
+        const teamAnalytics = await getOrgFinancialContext(orgId, "month");
         return NextResponse.json({
           success: true,
           data: reply,
           intent,
           confidence,
-          action: "schedule_meeting",
-          actionData: parsed.data,
-          needsClarification: parsed.needs_clarification,
+          analytics: teamAnalytics,
           suggestedActions: parsed.suggested_actions,
+          organizationId: orgId,
+          organizationName: organization.name,
         });
 
-      case "create_task":
-        return NextResponse.json({
-          success: true,
-          data: reply,
-          intent,
-          confidence,
-          action: "create_task",
-          actionData: parsed.data,
-          suggestedActions: parsed.suggested_actions,
+      case "approval_status":
+        // Query pending approvals
+        const pendingExpenses = await prisma.expenseTracker.findMany({
+          where: {
+            organizationId: orgId,
+            status: "pending",
+          },
+          orderBy: { date: "desc" },
+          take: 10,
         });
 
-      case "send_email":
-        return NextResponse.json({
-          success: true,
-          data: reply,
-          intent,
-          confidence,
-          action: "send_email",
-          actionData: parsed.data,
-          needsClarification: parsed.needs_clarification,
-          suggestedActions: parsed.suggested_actions,
-        });
+        const pendingTotal = pendingExpenses.reduce((sum, e) => sum + e.amount, 0);
+        const pendingResponse =
+          pendingExpenses.length === 0
+            ? `No pending expenses for ${organization.name}. All caught up! ✅`
+            : `**Pending Expenses for ${organization.name}**\n\nTotal: $${pendingTotal.toFixed(2)} across ${pendingExpenses.length} expense(s)\n\n${pendingExpenses.map((e, i) => `${i + 1}. ${e.name}: $${e.amount.toFixed(2)}`).join("\n")}`;
 
-      case "set_reminder":
         return NextResponse.json({
           success: true,
-          data: reply,
+          data: reply || pendingResponse,
           intent,
           confidence,
-          action: "set_reminder",
-          actionData: parsed.data,
-          suggestedActions: parsed.suggested_actions,
-        });
-
-      case "manage_content":
-        return NextResponse.json({
-          success: true,
-          data: reply,
-          intent,
-          confidence,
-          action: "manage_content",
-          actionData: parsed.data,
-          needsClarification: parsed.needs_clarification,
-          suggestedActions: parsed.suggested_actions,
-        });
-
-      case "analytics":
-        // Fetch real analytics data
-        const analyticsData = await getFinancialContext("month");
-        return NextResponse.json({
-          success: true,
-          data: reply,
-          intent,
-          confidence,
-          analytics: analyticsData,
-          suggestedActions: parsed.suggested_actions,
+          metadata: {
+            pendingCount: pendingExpenses.length,
+            pendingTotal,
+          },
+          suggestedActions: parsed.suggested_actions || ["Approve all", "View details"],
+          organizationId: orgId,
+          organizationName: organization.name,
         });
 
       case "greeting":
@@ -372,14 +383,15 @@ export async function POST(request: Request) {
           intent,
           confidence,
           suggestedActions: parsed.suggested_actions || [
-            "Check my expenses",
-            "Add a new expense",
+            `Check ${organization.name} expenses`,
             "View financial summary",
+            "Check pending approvals",
           ],
+          organizationId: orgId,
+          organizationName: organization.name,
         });
 
       case "acknowledgment":
-        // Brief response for acknowledgments like "ok", "thanks", etc.
         return NextResponse.json({
           success: true,
           data: reply || "Got it! Is there anything else I can help you with?",
@@ -387,9 +399,11 @@ export async function POST(request: Request) {
           confidence,
           suggestedActions: parsed.suggested_actions || [
             "Add another transaction",
-            "View my balance",
-            "Get financial advice",
+            "View organization balance",
+            "Get budget advice",
           ],
+          organizationId: orgId,
+          organizationName: organization.name,
         });
 
       case "unclear":
@@ -401,6 +415,8 @@ export async function POST(request: Request) {
           needsClarification: true,
           followUpQuestions: parsed.follow_up_questions,
           suggestedActions: parsed.suggested_actions,
+          organizationId: orgId,
+          organizationName: organization.name,
         });
 
       case "general":
@@ -412,12 +428,13 @@ export async function POST(request: Request) {
           confidence,
           suggestedActions: parsed.suggested_actions,
           followUpQuestions: parsed.follow_up_questions,
+          organizationId: orgId,
+          organizationName: organization.name,
         });
     }
   } catch (error: any) {
-    console.error("[AI Error]", error);
+    console.error("[Organization AI Error]", error);
 
-    // Graceful error handling
     if (error.message?.includes("rate limit")) {
       return NextResponse.json(
         { success: false, error: "AI service is busy. Please try again in a moment." },
@@ -443,21 +460,42 @@ export async function POST(request: Request) {
   }
 }
 
-// Health check endpoint
-export async function GET() {
+// Health check endpoint for organization AI
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ orgId: string }> }
+) {
+  const { orgId } = await params;
+
+  // Verify organization exists
+  const organization = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { id: true, name: true, industry: true },
+  });
+
+  if (!organization) {
+    return NextResponse.json(
+      { success: false, error: "Organization not found" },
+      { status: 404 }
+    );
+  }
+
   return NextResponse.json({
     status: "ok",
-    service: "C3-Amin AI",
-    version: "2.0",
+    service: "C3-Amin Organization AI",
+    version: "1.0",
+    organization: {
+      id: organization.id,
+      name: organization.name,
+      industry: organization.industry,
+    },
     capabilities: [
-      "expense_tracking",
-      "income_tracking",
-      "financial_analysis",
+      "organization_expense_tracking",
+      "organization_income_tracking",
+      "organization_financial_analysis",
+      "team_analytics",
+      "approval_status",
       "budget_advice",
-      "task_management",
-      "meeting_scheduling",
-      "email_drafting",
-      "content_planning",
     ],
   });
 }

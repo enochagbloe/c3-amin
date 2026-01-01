@@ -13,6 +13,7 @@ import { DollarSign, TrendingUp, Calendar, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreateIncome } from "@/lib/actions/income.actions";
 
+
 const OrgIncomePage = () => {
   const params = useParams();
   const orgId = params.id as string;
@@ -57,6 +58,7 @@ const OrgIncomePage = () => {
     fetchData();
   }, [orgId]);
 
+  // creating a an organization income
   const handleSubmit = async (formData: any) => {
     setIsLoading(true);
     try {
@@ -68,6 +70,7 @@ const OrgIncomePage = () => {
         setTableData((prevData) => [...prevData, result.data] as any);
         setOpen(false);
         toast.success("Organization income created successfully");
+        
         
         // Update stats
         setStats((prev) => ({
@@ -133,7 +136,14 @@ const OrgIncomePage = () => {
           <p className="text-muted-foreground">
             Track and manage all income sources for this organization
           </p>
+          
         </div>
+         <button
+          className="w-full sm:w-auto px-4 py-2 mb-4 rounded-lg font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90"
+          onClick={() => setOpen(true)}
+        >
+          Add Income
+        </button>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

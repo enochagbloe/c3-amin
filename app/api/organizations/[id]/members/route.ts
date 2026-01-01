@@ -2,7 +2,7 @@ import handleError from "@/lib/handler/error";
 import {
   getOrganizationMembers,
   addOrganizationMember,
-} from "@/lib/actions/organization.actions";
+} from "@/lib/actions/org/organization.actions";
 import { NextResponse } from "next/server";
 
 /**

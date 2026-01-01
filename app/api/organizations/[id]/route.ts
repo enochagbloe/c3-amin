@@ -3,7 +3,7 @@ import {
   getOrganization,
   updateOrganization,
   deleteOrganization,
-} from "@/lib/actions/organization.actions";
+} from "@/lib/actions/org/organization.actions";
 import { NextResponse } from "next/server";
 
 /**

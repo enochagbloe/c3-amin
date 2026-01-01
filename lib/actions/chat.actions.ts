@@ -63,10 +63,14 @@ export async function getChatSessions(
     const query: Record<string, unknown> = { userId };
     
     if (organizationId) {
+      // Organization-specific chats
       query.organizationId = new mongoose.Types.ObjectId(organizationId);
     } else {
-      // Personal chats have no organizationId
-      query.organizationId = { $exists: false };
+      // Personal chats: organizationId is null, undefined, or doesn't exist
+      query.$or = [
+        { organizationId: { $exists: false } },
+        { organizationId: null }
+      ];
     }
 
     const sessions = await ChatSession.find(query)
@@ -121,9 +125,7 @@ export async function createChatSession(
   }
 }
 
-/**
- * Add a message to an existing chat session
- */
+/*Add a message to an existing chat session*/
 export async function addMessageToSession(
   params: AddMessageParams
 ): Promise<ActionResponse<IChatSessionDoc>> {

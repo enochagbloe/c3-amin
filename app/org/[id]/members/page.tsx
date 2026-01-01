@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getOrganizationMembers } from "@/lib/actions/organization.actions";
+import { getOrganizationMembers } from "@/lib/actions/org/organization.actions";
 
 type Member = {
   id: string;

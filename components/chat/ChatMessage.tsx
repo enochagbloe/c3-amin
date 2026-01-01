@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { useMemo } from "react";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
@@ -9,8 +10,62 @@ interface ChatMessageProps {
   isTyping?: boolean;
 }
 
+// Parse and format the message content
+function formatContent(content: string): string {
+  // Replace literal \n with actual newlines
+  let formatted = content.replace(/\\n/g, "\n");
+  
+  // Clean up any double newlines
+  formatted = formatted.replace(/\n{3,}/g, "\n\n");
+  
+  return formatted.trim();
+}
+
+// Simple markdown-like formatting
+function renderFormattedContent(content: string) {
+  const formatted = formatContent(content);
+  
+  // Split by lines and render
+  const lines = formatted.split("\n");
+  
+  return lines.map((line, index) => {
+    // Bold text: **text**
+    const processedLine = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    
+    // Check if it's a bullet point or numbered list
+    const isBullet = /^[\-•]\s/.test(line);
+    const isNumbered = /^\d+\.\s/.test(line);
+    
+    if (isBullet || isNumbered) {
+      return (
+        <span key={index} className="block pl-2">
+          <span dangerouslySetInnerHTML={{ __html: processedLine }} />
+          {index < lines.length - 1 && <br />}
+        </span>
+      );
+    }
+    
+    // Empty line = paragraph break
+    if (line.trim() === "") {
+      return <br key={index} />;
+    }
+    
+    return (
+      <span key={index}>
+        <span dangerouslySetInnerHTML={{ __html: processedLine }} />
+        {index < lines.length - 1 && <br />}
+      </span>
+    );
+  });
+}
+
 export function ChatMessage({ role, content, isTyping }: ChatMessageProps) {
   const isUser = role === "user";
+  
+  const formattedContent = useMemo(() => {
+    if (isUser) return content;
+    return renderFormattedContent(content);
+  }, [content, isUser]);
 
   return (
     <motion.div
@@ -34,12 +89,12 @@ export function ChatMessage({ role, content, isTyping }: ChatMessageProps) {
             : "text-gray-800 dark:text-gray-100"
         )}
       >
-        <p className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words">
-          {content}
+        <div className="text-sm sm:text-base leading-relaxed break-words">
+          {isUser ? content : formattedContent}
           {isTyping && (
             <span className="inline-block w-0.5 h-4 bg-current ml-1 animate-pulse" />
           )}
-        </p>
+        </div>
       </div>
 
       {/* Avatar for User */}

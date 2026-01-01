@@ -41,7 +41,7 @@ interface GetExpenseParams {
 
 interface User {
   id: string;
-  staffId: string;
+  staffId?: string;
   name: string;
   username: string;
   firstName?: string;
@@ -52,6 +52,7 @@ interface User {
   city?: string;
   status?: "active" | "inactive";
   role?: "admin" | "manager" | "member" | "viewer";
+  organizationId: "string";
   image?: string;
   location?: string;
   portfolio?: string;
