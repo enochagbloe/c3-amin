@@ -437,12 +437,22 @@ export async function handleFinancialSummary(parsed: ParsedIntent): Promise<Hand
 /**
  * Get financial context for AI
  */
-export async function getFinancialContext(period: string = "month") {
+export async function getFinancialContext(period: string = "month", userId?: string) {
   try {
     const { start, end } = getDateRange(period);
 
+    // Build where condition with user filtering for personal expenses
+    const whereCondition: any = { 
+      date: { gte: start, lte: end },
+      organizationId: null // Only personal expenses
+    };
+    
+    if (userId) {
+      whereCondition.author = userId; // Filter by user for personal expenses
+    }
+
     const transactions = await prisma.expenseTracker.findMany({
-      where: { date: { gte: start, lte: end } },
+      where: whereCondition,
     });
 
     const expenses = transactions.filter((t) => t.amount >= 0);

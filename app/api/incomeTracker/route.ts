@@ -2,8 +2,19 @@
 import handleError from "@/lib/handler/error";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 
 export async function GET(request: Request) {
+    // Check authentication first
+    const session = await auth();
+    if (!session?.user?.id) {
+        return NextResponse.json(
+            { success: false, error: { message: "Unauthorized" } },
+            { status: 401 }
+        );
+    }
+
+    const userId = session.user.id;
     const { searchParams } = new URL(request.url);
     const incomeId = searchParams.get("incomeId");
     const orgId = searchParams.get("orgId");
@@ -18,8 +29,10 @@ export async function GET(request: Request) {
     // Filter by organizationId or personal (null)
     if (orgId) {
         whereCondition.organizationId = orgId;
+        // TODO: Verify user is member of this organization
     } else {
         whereCondition.organizationId = null; // Only personal income
+        whereCondition.userId = userId; // Filter by current user for personal income
     }
 
     try {

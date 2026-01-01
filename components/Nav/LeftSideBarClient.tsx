@@ -1,8 +1,11 @@
 "use client";
 
 import React from "react";
+import { signOut } from "next-auth/react";
 import NavLinks from "./NavLinks";
 import { cn } from "@/lib/utils";
+import { Button } from "../ui/button";
+import { LogOut } from "lucide-react";
 
 interface LeftSideBarClientProps {
   user?: {
@@ -14,6 +17,17 @@ interface LeftSideBarClientProps {
 
 const LeftSideBarClient = ({ user }: LeftSideBarClientProps) => {
   const [isCollapsed, setIsCollapsed] = React.useState(true);
+
+  const handleLogout = async () => {
+    try {
+      await signOut({ 
+        callbackUrl: "/sign-in",
+        redirect: true 
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
   return (
     <aside 
@@ -56,6 +70,26 @@ const LeftSideBarClient = ({ user }: LeftSideBarClientProps) => {
           </div>
         </div>
       </nav>
+        
+        {/* logout the user */}
+      <div className="border-t p-4">
+        <Button 
+          onClick={handleLogout}
+          variant="ghost" 
+          className={cn(
+            "w-full justify-start gap-2 transition-all duration-300",
+            isCollapsed ? "px-2" : "px-3"
+          )}
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          <span className={cn(
+            "transition-all duration-300",
+            isCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
+          )}>
+            Logout
+          </span>
+        </Button>
+      </div>
       
       {/* Footer */}
       <div className="border-t p-4">

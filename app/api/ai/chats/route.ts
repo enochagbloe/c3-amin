@@ -178,7 +178,7 @@ export async function POST(request: Request) {
 
     // Add financial context for smarter responses
     if (includeFinancialContext) {
-      const financialData = await getFinancialContext("month");
+      const financialData = await getFinancialContext("month", userId);
       if (financialData) {
         enhancedSystemPrompt += "\n\n" + ANALYTICS_PROMPT(financialData);
       }
@@ -355,7 +355,7 @@ export async function POST(request: Request) {
 
       case "analytics":
         // Fetch real analytics data
-        const analyticsData = await getFinancialContext("month");
+        const analyticsData = await getFinancialContext("month", userId);
         return NextResponse.json({
           success: true,
           data: reply,
