@@ -61,6 +61,16 @@ export async function createOrganization(
       },
     });
 
+    // Update user's organizationId in MongoDB (if first org or update needed)
+    try {
+      await User.findByIdAndUpdate(userId, {
+        organizationId: organization.id,
+      });
+    } catch (mongoError) {
+      // Non-critical: log but don't fail organization creation
+      console.warn("Failed to update user organizationId in MongoDB:", mongoError);
+    }
+
     return { success: true, data: organization };
   } catch (error) {
     return handleError(error) as ErrorResponse;

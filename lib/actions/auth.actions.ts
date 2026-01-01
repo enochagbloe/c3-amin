@@ -106,6 +106,10 @@ export async function signInWithCredentials(
   }
 
   const { email, password } = validationResult.params!;
+  
+  // Connect to MongoDB BEFORE any database operations
+  await dbConnect();
+  
   try {
     //lets find the user by email and password
     const existingUser = await User.findOne({ email });
