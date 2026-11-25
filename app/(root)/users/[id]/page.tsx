@@ -3,7 +3,7 @@ import UserDetailClientPage from './userDetails';
 import { auth } from '@/auth';
 import { getAllUsers } from '@/lib/actions/user.actions';
 import { notFound } from 'next/navigation';
-import mongoose from 'mongoose';
+
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -12,8 +12,8 @@ interface RouteParams {
 const userDetailsPage = async ({ params }: RouteParams) => {
   const { id } = await params;
 
-  // validate ObjectId
-  if (!id || !mongoose.Types.ObjectId.isValid(id)) return notFound();
+  // Validate PostgreSQL user UUID
+  if (!id || !(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))) return notFound();
 
   const session = await auth();
   const user = session?.user?.name;

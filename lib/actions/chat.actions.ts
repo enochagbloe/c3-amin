@@ -1,347 +1,115 @@
 "use server";
 
-import ChatSession, { IChatSessionDoc, IChatMessage } from "@/database/chatSession.model";
-import action from "../handler/action";
-import handleError from "../handler/error";
-import { NotFoundError } from "../http.error";
-import dbConnect from "../mongoose";
-import mongoose from "mongoose";
+import { auth } from '@/auth';
+import prisma from '@/lib/prisma';
+import { Prisma } from '@/lib/generated/prisma';
+import type { IChatSessionDoc } from '@/database/chatSession.model';
+import handleError from '../handler/error';
+import { NotFoundError, UnauthorizedError } from '../http.error';
+import { verifyOrganizationMember } from '../utils/authorization';
+import { z } from 'zod';
 
-// Types for the actions
-interface CreateChatSessionParams {
-  title?: string;
-  organizationId?: string;
+const organizationIdSchema = z.string().uuid().optional();
+const messageSchema = z.object({ role: z.enum(['user', 'assistant']), content: z.string().min(1).max(100000) });
+const include = { messages: { orderBy: { timestamp: 'asc' as const } } };
+type StoredSession = Prisma.ChatSessionGetPayload<{ include: typeof include }>;
+function serialize(session: StoredSession): IChatSessionDoc {
+  return JSON.parse(JSON.stringify(session));
+}
+function titleFor(content: string) {
+  const title = content.trim().replace(/\n/g, ' ');
+  return title.length > 40 ? title.slice(0, 40).trim() + '...' : title;
+}
+async function currentUser() {
+  const session = await auth();
+  if (!session?.user?.id) throw new UnauthorizedError();
+  return session.user.id;
+}
+async function ownedSession(id: string, userId: string) {
+  z.string().uuid().parse(id);
+  const session = await prisma.chatSession.findFirst({ where: { id, userId }, include });
+  if (!session) throw new NotFoundError('Chat session not found');
+  if (session.organizationId) await verifyOrganizationMember(userId, session.organizationId);
+  return session;
 }
 
-interface AddMessageParams {
-  sessionId: string;
-  role: "user" | "assistant";
-  content: string;
-}
-
-interface UpdateSessionParams {
-  sessionId: string;
-  title?: string;
-  isPinned?: boolean;
-}
-
-interface GetSessionsParams {
-  organizationId?: string;
-}
-
-// Helper to generate title from first message
-const generateTitle = (content: string): string => {
-  const maxLength = 40;
-  const cleaned = content.trim().replace(/\n/g, " ");
-  if (cleaned.length <= maxLength) return cleaned;
-  return cleaned.substring(0, maxLength).trim() + "...";
-};
-
-/**
- * Get all chat sessions for the current user (or organization)
- */
-export async function getChatSessions(
-  params: GetSessionsParams = {}
-): Promise<ActionResponse<IChatSessionDoc[]>> {
-  const validationResult = await action({
-    params,
-    authorize: true,
-    useMongo: true,
-  });
-
-  if (validationResult instanceof Error) {
-    return handleError(validationResult) as ErrorResponse;
-  }
-
-  const { session } = validationResult;
-  const userId = session?.user?.id;
-  const { organizationId } = params;
-
+export async function getChatSessions(params: { organizationId?: string } = {}): Promise<ActionResponse<IChatSessionDoc[]>> {
   try {
-    await dbConnect();
-
-    const query: Record<string, unknown> = { userId };
-    
-    if (organizationId) {
-      // Organization-specific chats
-      query.organizationId = new mongoose.Types.ObjectId(organizationId);
-    } else {
-      // Personal chats: organizationId is null, undefined, or doesn't exist
-      query.$or = [
-        { organizationId: { $exists: false } },
-        { organizationId: null }
-      ];
-    }
-
-    const sessions = await ChatSession.find(query)
-      .sort({ isPinned: -1, updatedAt: -1 })
-      .lean();
-
-    return { success: true, data: JSON.parse(JSON.stringify(sessions)) };
-  } catch (error) {
-    return handleError(error) as ErrorResponse;
-  }
-}
-
-/**
- * Create a new chat session
- */
-export async function createChatSession(
-  params: CreateChatSessionParams = {}
-): Promise<ActionResponse<IChatSessionDoc>> {
-  const validationResult = await action({
-    params,
-    authorize: true,
-    useMongo: true,
-  });
-
-  if (validationResult instanceof Error) {
-    return handleError(validationResult) as ErrorResponse;
-  }
-
-  const { session } = validationResult;
-  const userId = session?.user?.id;
-  const { title = "New Chat", organizationId } = params;
-
-  try {
-    await dbConnect();
-
-    const sessionData: Record<string, unknown> = {
-      userId: new mongoose.Types.ObjectId(userId),
-      title,
-      messages: [],
-      isPinned: false,
-    };
-
-    if (organizationId) {
-      sessionData.organizationId = new mongoose.Types.ObjectId(organizationId);
-    }
-
-    const newSession = await ChatSession.create(sessionData);
-
-    return { success: true, data: JSON.parse(JSON.stringify(newSession)) };
-  } catch (error) {
-    return handleError(error) as ErrorResponse;
-  }
-}
-
-/*Add a message to an existing chat session*/
-export async function addMessageToSession(
-  params: AddMessageParams
-): Promise<ActionResponse<IChatSessionDoc>> {
-  const validationResult = await action({
-    params,
-    authorize: true,
-    useMongo: true,
-  });
-
-  if (validationResult instanceof Error) {
-    return handleError(validationResult) as ErrorResponse;
-  }
-
-  const { session } = validationResult;
-  const userId = session?.user?.id;
-  const { sessionId, role, content } = params;
-
-  try {
-    await dbConnect();
-
-    const chatSession = await ChatSession.findOne({
-      _id: sessionId,
-      userId,
+    const userId = await currentUser();
+    const organizationId = organizationIdSchema.parse(params.organizationId);
+    if (organizationId) await verifyOrganizationMember(userId, organizationId);
+    const sessions = await prisma.chatSession.findMany({
+      where: { userId, organizationId: organizationId ?? null },
+      orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }], include,
     });
+    return { success: true, data: sessions.map(serialize) };
+  } catch (error) { return handleError(error) as ErrorResponse; }
+}
 
-    if (!chatSession) {
-      throw new NotFoundError("Chat session not found");
-    }
+export async function createChatSession(params: { title?: string; organizationId?: string } = {}): Promise<ActionResponse<IChatSessionDoc>> {
+  try {
+    const userId = await currentUser();
+    const organizationId = organizationIdSchema.parse(params.organizationId);
+    if (organizationId) await verifyOrganizationMember(userId, organizationId);
+    const title = z.string().min(1).max(200).default('New Chat').parse(params.title);
+    const session = await prisma.chatSession.create({ data: { userId, organizationId, title }, include });
+    return { success: true, data: serialize(session) };
+  } catch (error) { return handleError(error) as ErrorResponse; }
+}
 
-    // Add the new message
-    chatSession.messages.push({
-      role,
-      content,
-      timestamp: new Date(),
+export async function createSessionWithMessage(params: { role: 'user' | 'assistant'; content: string; organizationId?: string }): Promise<ActionResponse<IChatSessionDoc>> {
+  try {
+    const userId = await currentUser();
+    const organizationId = organizationIdSchema.parse(params.organizationId);
+    if (organizationId) await verifyOrganizationMember(userId, organizationId);
+    const message = messageSchema.parse(params);
+    const session = await prisma.chatSession.create({ data: {
+      userId, organizationId, title: message.role === 'user' ? titleFor(message.content) : 'New Chat',
+      messages: { create: message },
+    }, include });
+    return { success: true, data: serialize(session) };
+  } catch (error) { return handleError(error) as ErrorResponse; }
+}
+
+export async function addMessageToSession(params: { sessionId: string; role: 'user' | 'assistant'; content: string }): Promise<ActionResponse<IChatSessionDoc>> {
+  try {
+    const userId = await currentUser();
+    await ownedSession(params.sessionId, userId);
+    const message = messageSchema.parse(params);
+    const session = await prisma.$transaction(async tx => {
+      const firstUserMessage = message.role === 'user' && (await tx.chatMessage.count({
+        where: { sessionId: params.sessionId, role: 'user' },
+      })) === 0;
+      return tx.chatSession.update({ where: { id: params.sessionId, userId }, data: {
+        ...(firstUserMessage ? { title: titleFor(message.content) } : {}),
+        updatedAt: new Date(), messages: { create: message },
+      }, include });
     });
-
-    // Update title if this is the first user message
-    const messagesArray = chatSession.messages as IChatMessage[];
-    const userMessages = messagesArray.filter((m) => m.role === "user");
-    if (role === "user" && userMessages.length === 1) {
-      chatSession.title = generateTitle(content);
-    }
-
-    await chatSession.save();
-
-    return { success: true, data: JSON.parse(JSON.stringify(chatSession)) };
-  } catch (error) {
-    return handleError(error) as ErrorResponse;
-  }
+    return { success: true, data: serialize(session) };
+  } catch (error) { return handleError(error) as ErrorResponse; }
 }
 
-/**
- * Create a session and add the first message in one operation
- */
-export async function createSessionWithMessage(
-  params: { role: "user" | "assistant"; content: string; organizationId?: string }
-): Promise<ActionResponse<IChatSessionDoc>> {
-  const validationResult = await action({
-    params,
-    authorize: true,
-    useMongo: true,
-  });
-
-  if (validationResult instanceof Error) {
-    return handleError(validationResult) as ErrorResponse;
-  }
-
-  const { session } = validationResult;
-  const userId = session?.user?.id;
-  const { role, content, organizationId } = params;
-
+export async function updateChatSession(params: { sessionId: string; title?: string; isPinned?: boolean }): Promise<ActionResponse<IChatSessionDoc>> {
   try {
-    await dbConnect();
-
-    const title = role === "user" ? generateTitle(content) : "New Chat";
-
-    const sessionData: Record<string, unknown> = {
-      userId: new mongoose.Types.ObjectId(userId),
-      title,
-      messages: [
-        {
-          role,
-          content,
-          timestamp: new Date(),
-        },
-      ],
-      isPinned: false,
-    };
-
-    if (organizationId) {
-      sessionData.organizationId = new mongoose.Types.ObjectId(organizationId);
-    }
-
-    const newSession = await ChatSession.create(sessionData);
-
-    return { success: true, data: JSON.parse(JSON.stringify(newSession)) };
-  } catch (error) {
-    return handleError(error) as ErrorResponse;
-  }
+    const userId = await currentUser();
+    await ownedSession(params.sessionId, userId);
+    const data = z.object({ title: z.string().min(1).max(200).optional(), isPinned: z.boolean().optional() }).parse(params);
+    const session = await prisma.chatSession.update({ where: { id: params.sessionId, userId }, data, include });
+    return { success: true, data: serialize(session) };
+  } catch (error) { return handleError(error) as ErrorResponse; }
 }
 
-/**
- * Update a chat session (title, pinned status)
- */
-export async function updateChatSession(
-  params: UpdateSessionParams
-): Promise<ActionResponse<IChatSessionDoc>> {
-  const validationResult = await action({
-    params,
-    authorize: true,
-    useMongo: true,
-  });
-
-  if (validationResult instanceof Error) {
-    return handleError(validationResult) as ErrorResponse;
-  }
-
-  const { session } = validationResult;
-  const userId = session?.user?.id;
-  const { sessionId, title, isPinned } = params;
-
+export async function deleteChatSession(params: { sessionId: string }): Promise<ActionResponse<{ deleted: boolean }>> {
   try {
-    await dbConnect();
-
-    const updateData: Record<string, unknown> = {};
-    if (title !== undefined) updateData.title = title;
-    if (isPinned !== undefined) updateData.isPinned = isPinned;
-
-    const chatSession = await ChatSession.findOneAndUpdate(
-      { _id: sessionId, userId },
-      { $set: updateData },
-      { new: true }
-    );
-
-    if (!chatSession) {
-      throw new NotFoundError("Chat session not found");
-    }
-
-    return { success: true, data: JSON.parse(JSON.stringify(chatSession)) };
-  } catch (error) {
-    return handleError(error) as ErrorResponse;
-  }
-}
-
-/**
- * Delete a chat session
- */
-export async function deleteChatSession(
-  params: { sessionId: string }
-): Promise<ActionResponse<{ deleted: boolean }>> {
-  const validationResult = await action({
-    params,
-    authorize: true,
-    useMongo: true,
-  });
-
-  if (validationResult instanceof Error) {
-    return handleError(validationResult) as ErrorResponse;
-  }
-
-  const { session } = validationResult;
-  const userId = session?.user?.id;
-  const { sessionId } = params;
-
-  try {
-    await dbConnect();
-
-    const result = await ChatSession.findOneAndDelete({
-      _id: sessionId,
-      userId,
-    });
-
-    if (!result) {
-      throw new NotFoundError("Chat session not found");
-    }
-
+    const userId = await currentUser();
+    await ownedSession(params.sessionId, userId);
+    await prisma.chatSession.delete({ where: { id: params.sessionId, userId } });
     return { success: true, data: { deleted: true } };
-  } catch (error) {
-    return handleError(error) as ErrorResponse;
-  }
+  } catch (error) { return handleError(error) as ErrorResponse; }
 }
 
-/**
- * Get a single chat session by ID
- */
-export async function getChatSessionById(
-  params: { sessionId: string }
-): Promise<ActionResponse<IChatSessionDoc>> {
-  const validationResult = await action({
-    params,
-    authorize: true,
-    useMongo: true,
-  });
-
-  if (validationResult instanceof Error) {
-    return handleError(validationResult) as ErrorResponse;
-  }
-
-  const { session } = validationResult;
-  const userId = session?.user?.id;
-  const { sessionId } = params;
-
+export async function getChatSessionById(params: { sessionId: string }): Promise<ActionResponse<IChatSessionDoc>> {
   try {
-    await dbConnect();
-
-    const chatSession = await ChatSession.findOne({
-      _id: sessionId,
-      userId,
-    }).lean();
-
-    if (!chatSession) {
-      throw new NotFoundError("Chat session not found");
-    }
-
-    return { success: true, data: JSON.parse(JSON.stringify(chatSession)) };
-  } catch (error) {
-    return handleError(error) as ErrorResponse;
-  }
+    return { success: true, data: serialize(await ownedSession(params.sessionId, await currentUser())) };
+  } catch (error) { return handleError(error) as ErrorResponse; }
 }

@@ -24,7 +24,7 @@ export async function createBudgetExpense(
     },
     schema: ExpenseTrackerInputSchema,
     authorize: false,
-    useMongo: false,
+
   });
   if (validationResult instanceof Error)
     return handleError(validationResult) as ErrorResponse;
@@ -58,7 +58,7 @@ export async function getAllExpense(
     params,
     schema: GetExpenseSchema,
     authorize: true,
-    useMongo: false,
+
   });
 
   if (validationResult instanceof Error)
@@ -119,7 +119,7 @@ export async function updateExpenseStatus(
     params,
     schema: UpdateExpenseStatusSchema,
     authorize: true,
-    useMongo: false,
+
   });
   if (validationResult instanceof Error)
     return handleError(validationResult) as ErrorResponse;
@@ -185,7 +185,7 @@ export async function deleteExpense(
     params,
     schema: GetExpenseSchema,
     authorize: true,
-    useMongo: false,
+
   });
   if (validationResult instanceof Error)
     return handleError(validationResult) as ErrorResponse;

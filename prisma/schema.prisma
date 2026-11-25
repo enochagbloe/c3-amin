@@ -6,24 +6,94 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id             String        @id @default(uuid())
+  name           String
+  username       String        @unique
+  email          String        @unique
+  firstName      String?
+  lastName       String?
+  bio            String?
+  phone          String?
+  city           String?
+  status         String        @default("active")
+  role           String        @default("member")
+  staffId        String?
+  organizationId String?
+  image          String?
+  location       String?
+  portfolio      String?
+  reputation     Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  accounts       Account[]
+  chats          ChatSession[]
+
+  @@unique([organizationId, staffId])
+}
+
+model Account {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String
+  email             String
+  username          String?
+  image             String?
+  password          String?
+  provider          String
+  providerAccountId String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model ChatSession {
+  id             String        @id @default(uuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String?
+  title          String        @default("New Chat")
+  isPinned       Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  messages       ChatMessage[]
+
+  @@index([userId, organizationId, updatedAt])
+}
+
+model ChatMessage {
+  id        String      @id @default(uuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String
+  content   String
+  timestamp DateTime    @default(now())
+
+  @@index([sessionId, timestamp])
 }
 
 model ExpenseTracker {
-  id       String   @id @default(cuid())
-  name     String
-  amount   Float
-  date     DateTime @default(now())
-  status   Status   @default(pending)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  author   String
-  description String?
+  id             String   @id @default(cuid())
+  name           String
+  amount         Float
+  date           DateTime @default(now())
+  status         Status   @default(pending)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  author         String
+  description    String?
   organizationId String?
-  
-  organization  Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   // Author from MongoDb Users collection
-  
+
   @@index([author])
   @@index([date])
   @@index([organizationId])
@@ -36,42 +106,42 @@ enum Status {
 }
 
 model Income {
-  id            String    @id @default(uuid())
-  name          String                
-  userId        String
-  amount        Float
-  source        String
-  description   String?
-  date          DateTime   @default(now())
-  createdAt     DateTime   @default(now())
+  id             String              @id @default(uuid())
+  name           String
+  userId         String
+  amount         Float
+  source         String
+  description    String?
+  date           DateTime            @default(now())
+  createdAt      DateTime            @default(now())
   organizationId String?
-  customValues  IncomeCustomValue[]
-  
-  organization  Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
+  customValues   IncomeCustomValue[]
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   @@index([organizationId])
 }
 
 model CustomField {
-  id            String                @id @default(uuid())
-  userId        String
-  name          String
-  type          FieldType
-  required      Boolean               @default(false)
-  options       String[] @default([])            // only for SELECT type
-  createdAt     DateTime              @default(now())
+  id        String    @id @default(uuid())
+  userId    String
+  name      String
+  type      FieldType
+  required  Boolean   @default(false)
+  options   String[]  @default([]) // only for SELECT type
+  createdAt DateTime  @default(now())
 
-  customValues  IncomeCustomValue[]
+  customValues IncomeCustomValue[]
 }
 
 model IncomeCustomValue {
-  id           String       @id @default(uuid())
-  incomeId     String
-  fieldId      String
-  value        String       // stored as string, parsed in UI
+  id       String @id @default(uuid())
+  incomeId String
+  fieldId  String
+  value    String // stored as string, parsed in UI
 
-  income       Income       @relation(fields: [incomeId], references: [id])
-  customField  CustomField  @relation(fields: [fieldId], references: [id])
+  income      Income      @relation(fields: [incomeId], references: [id])
+  customField CustomField @relation(fields: [fieldId], references: [id])
 }
 
 enum FieldType {
@@ -82,21 +152,19 @@ enum FieldType {
   TOGGLE
 }
 
-
-
 model Organization {
-  id        String   @id @default(uuid())
-  name      String
-  email     String?  // contact email for the org
-  bio       String?  // short description / about
-  industry  Industry
+  id       String   @id @default(uuid())
+  name     String
+  email    String? // contact email for the org
+  bio      String? // short description / about
+  industry Industry
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  members   OrganizationMember[]
-  expenses  ExpenseTracker[]
-  income    Income[]
+  members  OrganizationMember[]
+  expenses ExpenseTracker[]
+  income   Income[]
 }
 
 enum Industry {
@@ -111,18 +179,16 @@ enum Industry {
   OTHER
 }
 
-
 model OrganizationMember {
-  id             String @id @default(uuid())
+  id             String           @id @default(uuid())
   userId         String
   organizationId String
   role           OrganizationRole @default(MEMBER)
-  joinedAt       DateTime @default(now())
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  joinedAt       DateTime         @default(now())
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([userId, organizationId])
 }
-
 
 enum OrganizationRole {
   OWNER

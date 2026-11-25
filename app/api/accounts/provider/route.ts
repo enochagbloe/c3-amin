@@ -1,30 +1,17 @@
-import handleError from "@/lib/handler/error";
-import { NextResponse } from "next/server";
-import dbConnect from "@/lib/mongoose";
-import Account from "@/database/account.model";
-import { AccountSchema } from "@/lib/validations";
-import { NotFoundError, ValidationError } from "@/lib/http.error";
+import prisma from '@/lib/prisma';
+import { auth } from '@/auth';
+import { NextResponse } from 'next/server';
+import handleError from '@/lib/handler/error';
+import { NotFoundError, UnauthorizedError } from '@/lib/http.error';
+const safeAccount={id:true,userId:true,name:true,email:true,username:true,image:true,provider:true,providerAccountId:true,createdAt:true,updatedAt:true};
 
-export async function POST(request: Request) {
-  // extract the providerAccountId  from the request body
-  const { providerAccountId } = await request.json();
-  try {
-    // CONNECT TO DATABASE
-    await dbConnect();
-    // validate the validatedData
-    const validatedData = AccountSchema.partial().safeParse({
-      providerAccountId,
-    });
-    // if not the validatedData
-    if (!validatedData.success)
-      throw new ValidationError(validatedData.error.flatten().fieldErrors);
-    // if the validatedData is valid
-    const account = await Account.findOne({ providerAccountId });
-    // if the validatedData is not found
-    if (!account) throw new NotFoundError("validatedData not found");
-    // if the validatedData is found
-    return NextResponse.json({ success: true, data: account }, { status: 200 });
-  } catch (error) {
-    return handleError(error, "api") as APIErrorResponse;
-  }
+import {z} from 'zod';
+export async function POST(req:Request) {
+ try {
+  const session=await auth();if(!session?.user?.id)throw new UnauthorizedError();
+  const {providerAccountId}=z.object({providerAccountId:z.string().min(1)}).parse(await req.json());
+  const account=await prisma.account.findFirst({where:{providerAccountId,userId:session.user.id},select:safeAccount});
+  if(!account)throw new NotFoundError('Account');
+  return NextResponse.json({success:true,data:account});
+ }catch(error){return handleError(error,'api') as APIErrorResponse;}
 }

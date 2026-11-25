@@ -58,10 +58,10 @@ export function ChatProvider({ children, organizationId, organizationName }: Cha
         if (result.success && result.data) {
           // Transform database format to context format
           const transformedSessions: ChatSession[] = result.data.map((session: IChatSessionDoc) => ({
-            id: session._id.toString(),
+            id: session.id.toString(),
             title: session.title,
             messages: session.messages.map((msg: IChatMessage, index: number) => ({
-              id: `${session._id}-${index}`,
+              id: `${session.id}-${index}`,
               role: msg.role,
               content: msg.content,
               timestamp: new Date(msg.timestamp),
@@ -220,7 +220,7 @@ export function ChatProvider({ children, organizationId, organizationName }: Cha
 
           if (result.success && result.data) {
             const dbSession = result.data;
-            const newSessionId = dbSession._id.toString();
+            const newSessionId = dbSession.id.toString();
 
             // Create the session object
             const newSession: ChatSession = {

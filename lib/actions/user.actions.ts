@@ -5,26 +5,26 @@
 import { getAllUsersSchema } from "../validations";
 import action from "../handler/action";
 import handleError from "../handler/error";
-import User, { IUserDoc } from "@/database/user.model"; // Adjust path as needed
+import prisma from "@/lib/prisma";
 
 export async function getAllUsers(params: getAllUsers): Promise<ActionResponse<any>>{
     const validationResult = await action({
         params,
         schema: getAllUsersSchema,
         authorize: true,
-        useMongo: true
+
     })
     if(validationResult instanceof Error) return handleError(validationResult) as ErrorResponse
 
     const { userId } = validationResult.params!
     try {
-        const user = await User.findById(userId).lean<IUserDoc>()
+        const user = await prisma.user.findUnique({ where: { id: userId } })
         
         if(!user) throw new Error('User not found') 
         
         // Serialize the user data
         const serializedUser = {
-            id: user._id.toString(),
+            id: user.id,
             staffId: user.staffId,
             name: user.name,
             username: user.username,

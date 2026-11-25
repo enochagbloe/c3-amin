@@ -26,7 +26,7 @@ export async function CreateIncome(params: CreateIncome): Promise<ActionResponse
         params: {...params, date: new Date(params.date) },
         schema: createIncomeSchema,
         authorize: false,
-        useMongo: false,
+
     });
     if (validationResult instanceof Error)
         return handleError(validationResult) as ErrorResponse;
@@ -95,7 +95,7 @@ export async function getAllIncome(
         params,
         schema: GetIncomeSchema,
         authorize: true,
-        useMongo: false,
+
     });
     if (validationResult instanceof Error)
         return handleError(validationResult) as ErrorResponse;

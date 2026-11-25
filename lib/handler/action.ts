@@ -4,21 +4,21 @@ import { ZodError, ZodSchema } from "zod";
 import { UnauthorizedError, ValidationError } from "../http.error";
 import { Session } from "next-auth";
 import { auth } from "@/auth";
-import dbConnect from "../mongoose";
+
 
 // create a type
 type ActionOptions<T> = {
   params?: T;
   schema?: ZodSchema<T>;
   authorize?: boolean;
-  useMongo?: boolean;
+
 };
 
 async function action<T>({
   params,
   schema,
   authorize = false,
-  useMongo = false,
+
 }: ActionOptions<T>) {
   // if we have access to the params and the schema
   if (params && schema) {
@@ -47,10 +47,7 @@ async function action<T>({
     if (!session) return new UnauthorizedError();
   }
 
-  if (useMongo) {
-    // connect to database
-    await dbConnect();
-  }
+
   // return the session and the params
   return { params, session };
 }

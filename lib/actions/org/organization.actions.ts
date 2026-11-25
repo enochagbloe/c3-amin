@@ -18,7 +18,7 @@ import {
 } from "@/lib/validations";
 import { auth } from "@/auth";
 import { ForbiddenError, NotFoundError } from "@/lib/http.error";
-import User from "@/database/user.model";
+
 
 /**
  * CREATE ORGANIZATION
@@ -31,7 +31,7 @@ export async function createOrganization(
     params,
     schema: CreateOrganizationSchema,
     authorize: true,
-    useMongo: false,
+
   });
 
   if (validationResult instanceof Error)
@@ -61,14 +61,12 @@ export async function createOrganization(
       },
     });
 
-    // Update user's organizationId in MongoDB (if first org or update needed)
+    // Update user's organizationId in PostgreSQL (if first org or update needed)
     try {
-      await User.findByIdAndUpdate(userId, {
-        organizationId: organization.id,
-      });
-    } catch (mongoError) {
+      await prisma.user.update({ where: { id: userId }, data: { organizationId: organization.id } });
+    } catch (databaseError) {
       // Non-critical: log but don't fail organization creation
-      console.warn("Failed to update user organizationId in MongoDB:", mongoError);
+      console.warn("Failed to update user organizationId in PostgreSQL:", databaseError);
     }
 
     return { success: true, data: organization };
@@ -88,7 +86,7 @@ export async function getOrganization(
     params,
     schema: GetOrganizationSchema,
     authorize: true,
-    useMongo: false,
+
   });
 
   if (validationResult instanceof Error)
@@ -140,7 +138,7 @@ export async function getUserOrganizations(): Promise<
 > {
   const validationResult = await action({
     authorize: true,
-    useMongo: false,
+
   });
 
   if (validationResult instanceof Error)
@@ -182,7 +180,7 @@ export async function updateOrganization(
     params,
     schema: UpdateOrganizationSchema,
     authorize: true,
-    useMongo: false,
+
   });
 
   if (validationResult instanceof Error)
@@ -235,7 +233,7 @@ export async function deleteOrganization(
     params,
     schema: DeleteOrganizationSchema,
     authorize: true,
-    useMongo: false,
+
   });
 
   if (validationResult instanceof Error)
@@ -282,7 +280,7 @@ export async function addOrganizationMember(
     params,
     schema: AddOrganizationMemberSchema,
     authorize: true,
-    useMongo: false,
+
   });
 
   if (validationResult instanceof Error)
@@ -350,7 +348,7 @@ export async function updateOrganizationMemberRole(
     params,
     schema: UpdateOrganizationMemberSchema,
     authorize: true,
-    useMongo: false,
+
   });
 
   if (validationResult instanceof Error)
@@ -421,7 +419,7 @@ export async function removeOrganizationMember(
     params,
     schema: RemoveOrganizationMemberSchema,
     authorize: true,
-    useMongo: false,
+
   });
 
   if (validationResult instanceof Error)
@@ -497,7 +495,7 @@ export async function getOrganizationMembers(
     params,
     schema: GetOrganizationMembersSchema,
     authorize: true,
-    useMongo: true, // Enable MongoDB connection for User model
+
   });
 
   if (validationResult instanceof Error)
@@ -536,11 +534,11 @@ export async function getOrganizationMembers(
       }),
     ]);
 
-    // Fetch user details from MongoDB for each member
+    // Fetch user details from PostgreSQL for each member
     const membersWithUserDetails = await Promise.all(
       members.map(async (member) => {
         try {
-          const user = await User.findById(member.userId).lean();
+          const user = await prisma.user.findUnique({ where: { id: member.userId } });
           return {
             ...member,
             user: user ? {

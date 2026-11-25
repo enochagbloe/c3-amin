@@ -1,11 +1,11 @@
-import { IAccount } from "@/database/account.model";
-import { IUser } from "@/database/user.model";
+import type { IAccount } from "@/database/account.model";
+import type { IUser } from "@/database/user.model";
 import { fetchHandler } from "./handler/fetch";
 import { ROUTES } from "@/constant/route";
 
 // Set your API_BASE_URL
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000/api";
+  process.env.NEXT_PUBLIC_API_BASE_URL || (process.env.AUTH_URL ? `${process.env.AUTH_URL}/api` : "http://localhost:3000/api");
 
 // define the api with the methods (getAll, getById,getByEmail, create, update, delete)
 export const api = {

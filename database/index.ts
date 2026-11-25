@@ -1,4 +1,2 @@
-import Account from "@/database/account.model";
-import User from "@/database/user.model";
-
-export { Account, User };
+export type { IUser, IUserDoc } from './user.model';
+export type { IAccount, IAccountDoc } from './account.model';

@@ -17,9 +17,7 @@ import {
 } from "@/lib/ai/handlers";
 
 // Initialize OpenRouter client
-const client = new OpenRouter({
-  apiKey: process.env.OPEN_AI_KEYS!,
-});
+
 
 // Available AI models (can be configured)
 const AI_MODELS = {
@@ -188,6 +186,10 @@ export async function POST(request: Request) {
     const selectedModel = AI_MODELS[model as keyof typeof AI_MODELS] || AI_MODELS.fast;
 
     // Call AI
+    if (!process.env.OPEN_AI_KEYS) {
+      return NextResponse.json({ error: 'AI features are not configured yet' }, { status: 503 });
+    }
+    const client = new OpenRouter({ apiKey: process.env.OPEN_AI_KEYS });
     const completion = await client.chat.send({
       model: selectedModel,
       messages: [

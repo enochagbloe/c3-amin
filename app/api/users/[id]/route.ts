@@ -1,79 +1,39 @@
+import prisma from '@/lib/prisma';
+import { auth } from '@/auth';
+import { NextResponse } from 'next/server';
+import handleError from '@/lib/handler/error';
+import { NotFoundError, UnauthorizedError, ForbiddenError } from '@/lib/http.error';
 
-
-import User from "@/database/user.model";
-import handleError from "@/lib/handler/error";
-import { NotFoundError } from "@/lib/http.error";
-import dbConnect from "@/lib/mongoose";
-import { UserSchema } from "@/lib/validations";
-import { NextResponse } from "next/server";
-
-// Get the user
-export async function GET(
-  _: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
-  if (!id) {
-    return new Response(JSON.stringify({ error: "User ID is required" }), {
-      status: 400,
-    });
-  }
-
-  try {
-    await dbConnect();
-    // Fetch user data from the database using the id
-    const user = await User.findById(id)
-    if (!user) throw new NotFoundError("User not found");
-    return NextResponse.json({ success: true, data: user }, { status: 200 });
-  } catch (error) {
-    if (error instanceof NotFoundError) {
-      return handleError(error, "api") as APIErrorResponse;
-    }
-  }
+import {UserSchema} from '@/lib/validations';
+type Context={params:Promise<{id:string}>};
+async function requireUser(id:string,modify=false) {
+ const session=await auth();
+ if(!session?.user?.id) throw new UnauthorizedError();
+ const actor=await prisma.user.findUnique({where:{id:session.user.id}});
+ if(modify&&actor?.id!==id&&actor?.role!=='admin') throw new ForbiddenError('Access denied');
+ return actor;
 }
-
-
-//Delete the user
-export async function DELETE(
-  _: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-    const { id } = await params;
-    if(!id) throw new NotFoundError('User ID is required');
-
-    try {
-        await dbConnect();
-        const user = await User.findByIdAndDelete(id);
-        if (!user) throw new NotFoundError("User not found");
-        return NextResponse.json({ success: true, message: "User deleted successfully" }, { status: 200 });
-    } catch (error) {
-        if (error instanceof NotFoundError) {
-            return handleError(error, "api") as APIErrorResponse;
-        }
-    }
+export async function GET(_:Request,{params}:Context) {
+ try {
+  const {id}=await params; await requireUser(id);
+  const user=await prisma.user.findUnique({where:{id}});
+  if(!user) throw new NotFoundError('User');
+  return NextResponse.json({success:true,data:user});
+ } catch(error) {return handleError(error,'api') as APIErrorResponse;}
 }
-
-//Update the user
-export async function PUT(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-    const { id } = await params;
-    if(!id) throw new NotFoundError('User ID is required');
-
-    try {
-        await dbConnect();
-        const body = await req.json();
-
-        const validatedData = UserSchema.partial().parse(body);
-
-        // Update user data in the database using the id
-        const user = await User.findByIdAndUpdate(id, validatedData, { new: true });
-        if (!user) throw new NotFoundError("User not found");
-        return NextResponse.json({ success: true, message: "User updated successfully" }, { status: 200 });
-    } catch (error) {
-        if (error instanceof NotFoundError) {
-            return handleError(error, "api") as APIErrorResponse;
-        }
-    }
+export async function PUT(req:Request,{params}:Context) {
+ try {
+  const {id}=await params; const actor=await requireUser(id,true);
+  const data=UserSchema.partial().parse(await req.json());
+  if(actor?.role!=='admin'){delete data.role;delete data.staffId;delete data.status;}
+  const user=await prisma.user.update({where:{id},data});
+  return NextResponse.json({success:true,data:user,message:'User updated successfully'});
+ } catch(error) {return handleError(error,'api') as APIErrorResponse;}
+}
+export async function DELETE(_:Request,{params}:Context) {
+ try {
+  const {id}=await params; await requireUser(id,true);
+  await prisma.user.delete({where:{id}});
+  return NextResponse.json({success:true,message:'User deleted successfully'});
+ } catch(error) {return handleError(error,'api') as APIErrorResponse;}
 }
