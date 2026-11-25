@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 export const orgSidebarLinks = [
+  { icon: Settings, label: "Personal settings", route: "/personal-settings", badge: null },
   {
     icon: FileText,
     label: "Budget requests",
@@ -34,7 +35,7 @@ export const orgSidebarLinks = [
   },
   {
     icon: Users,
-    label: "Members",
+    label: "Team",
     route: "/members",
     badge: null,
   },

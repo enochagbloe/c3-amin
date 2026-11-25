@@ -6,6 +6,8 @@ import { getAllUsersSchema } from "../validations";
 import action from "../handler/action";
 import handleError from "../handler/error";
 import prisma from "@/lib/prisma";
+import {auth} from "@/auth";
+import {ForbiddenError} from "@/lib/http.error";
 
 export async function getAllUsers(params: getAllUsers): Promise<ActionResponse<any>>{
     const validationResult = await action({
@@ -18,6 +20,11 @@ export async function getAllUsers(params: getAllUsers): Promise<ActionResponse<a
 
     const { userId } = validationResult.params!
     try {
+        const session=await auth();
+        if(session?.user?.id!==userId){
+          const shared=await prisma.organization.findFirst({where:{AND:[{members:{some:{userId:session?.user?.id,role:{in:['OWNER','ADMIN']}}}},{members:{some:{userId}}}]}});
+          if(!shared)throw new ForbiddenError();
+        }
         const user = await prisma.user.findUnique({ where: { id: userId } })
         
         if(!user) throw new Error('User not found') 

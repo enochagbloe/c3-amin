@@ -85,7 +85,9 @@ const OrganizationsPage = () => {
   };
 
   const handleCardClick = (orgId: string) => {
-    router.push(`/org/${orgId}/dashboard`);
+    const org = organizations.find(item => item.id === orgId);
+    const finance = ["OWNER", "ADMIN"].includes(org?.members[0]?.role ?? "");
+    router.push(`/org/${orgId}/${finance ? "dashboard" : "budget-requests"}`);
   };
 
   if (isLoading) {

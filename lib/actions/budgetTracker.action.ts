@@ -12,6 +12,7 @@ import {
   UpdateExpenseStatusSchema,
 } from "../validations";
 import { auth } from "@/auth";
+import { requireOrganizationFinance } from "@/lib/organizations/access";
 
 export async function createBudgetExpense(
   params: createBudgetExpense
@@ -23,7 +24,7 @@ export async function createBudgetExpense(
       date: new Date(params.date),
     },
     schema: ExpenseTrackerInputSchema,
-    authorize: false,
+    authorize: true,
 
   });
   if (validationResult instanceof Error)
@@ -33,6 +34,7 @@ export async function createBudgetExpense(
   const session = await auth();
   const userId = session?.user?.id as string;
   try {
+    if (params.organizationId) await requireOrganizationFinance(params.organizationId);
     const newExpenses = await prisma.expenseTracker.create({
       data: {
         name: name,
@@ -85,6 +87,7 @@ export async function getAllExpense(
 
     // Authorization check
     if (expense.organizationId) {
+      await requireOrganizationFinance(expense.organizationId);
       // If expense belongs to an organization, verify user is a member
       const membership = await prisma.organizationMember.findUnique({
         where: {

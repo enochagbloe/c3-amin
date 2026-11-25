@@ -18,6 +18,7 @@ interface SignInWithOAuthParams {
 }
 
 interface createBudgetExpense {
+  organizationId?: string;
   // id: string;
   name: string;
   amount: float;
@@ -94,6 +95,7 @@ interface CustomFieldValue {
 
 // Main income interface
  interface CreateIncome {
+  organizationId?: string;
   id?: string;
   name: string;     
   amount: float;

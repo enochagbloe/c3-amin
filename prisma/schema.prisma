@@ -10,30 +10,31 @@ datasource db {
 }
 
 model User {
-  id                    String               @id @default(uuid())
+  sentInvitations       OrganizationInvitation[]
+  id                    String                   @id @default(uuid())
   name                  String
-  username              String               @unique
-  email                 String               @unique
+  username              String                   @unique
+  email                 String                   @unique
   firstName             String?
   lastName              String?
   bio                   String?
   phone                 String?
   city                  String?
-  status                String               @default("active")
-  role                  String               @default("member")
+  status                String                   @default("active")
+  role                  String                   @default("member")
   staffId               String?
   organizationId        String?
   image                 String?
   location              String?
   portfolio             String?
-  reputation            Int                  @default(0)
-  createdAt             DateTime             @default(now())
-  updatedAt             DateTime             @updatedAt
+  reputation            Int                      @default(0)
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
   accounts              Account[]
   chats                 ChatSession[]
-  budgetRequests        BudgetRequest[]      @relation("BudgetRequester")
-  mainBudgetApprovals   BudgetRequest[]      @relation("MainBudgetApprover")
-  secondBudgetApprovals BudgetRequest[]      @relation("SecondBudgetApprover")
+  budgetRequests        BudgetRequest[]          @relation("BudgetRequester")
+  mainBudgetApprovals   BudgetRequest[]          @relation("MainBudgetApprover")
+  secondBudgetApprovals BudgetRequest[]          @relation("SecondBudgetApprover")
   budgetRequestEvents   BudgetRequestEvent[]
 
   @@unique([organizationId, staffId])
@@ -157,9 +158,10 @@ enum FieldType {
 }
 
 model Organization {
+  emailSettings    OrganizationEmailSettings?
   budgetReviewerId String?
   budgetPastorId   String?
-  id               String   @id @default(uuid())
+  id               String                     @id @default(uuid())
   name             String
   email            String? // contact email for the org
   bio              String? // short description / about
@@ -172,6 +174,7 @@ model Organization {
   expenses       ExpenseTracker[]
   income         Income[]
   budgetRequests BudgetRequest[]
+  invitations    OrganizationInvitation[]
 }
 
 enum BudgetRequestStatus {
@@ -261,4 +264,41 @@ enum OrganizationRole {
   ADMIN
   MEMBER
   VIEWER
+}
+
+model OrganizationEmailSettings {
+  organizationId  String       @id
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  fromEmail       String
+  apiKeyEncrypted String
+  updatedAt       DateTime     @updatedAt
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+}
+
+model OrganizationInvitation {
+  id             String           @id @default(uuid())
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedById    String
+  invitedBy      User             @relation(fields: [invitedById], references: [id], onDelete: Restrict)
+  email          String
+  tokenHash      String           @unique
+  status         InvitationStatus @default(PENDING)
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  acceptedById   String?
+  emailStatus    String           @default("PENDING")
+  emailId        String?
+  emailError     String?
+  lastSentAt     DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([organizationId, email])
+  @@index([organizationId, email, status])
 }

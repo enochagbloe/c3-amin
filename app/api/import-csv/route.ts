@@ -1,3 +1,6 @@
+import {tmpdir} from "node:os";
+import {randomUUID} from "node:crypto";
+import {auth} from "@/auth";
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
@@ -37,12 +40,15 @@ function mapHeaders(headers: string[]) {
 
 // Next.js route handler
 export async function POST(req: NextRequest) {
+  const session=await auth();
+  if(!session?.user?.id)return NextResponse.json({error:"Authentication required"},{status:401});
   const formData = await req.formData();
   const file = formData.get("file") as File;
   if (!file) return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
 
+  if(file.size>5*1024*1024)return NextResponse.json({error:"CSV files must be smaller than 5 MB"},{status:400});
   // Save the uploaded file temporarily
-  const tempFilePath = path.join(process.cwd(), "uploads", file.name);
+  const tempFilePath = path.join(tmpdir(), `c3-import-${randomUUID()}.csv`);
   const buffer = Buffer.from(await file.arrayBuffer());
   fs.writeFileSync(tempFilePath, buffer);
 
@@ -69,7 +75,7 @@ export async function POST(req: NextRequest) {
       const amountRaw = row[map.amount];
       const dateRaw = row[map.date];
       const status = row[map.status] || "pending";
-      const author = row[map.author] || "unknown";
+      const author = session.user.id;
       const description = row[map.description] || null;
 
       const amount = Number(amountRaw);

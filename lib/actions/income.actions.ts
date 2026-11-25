@@ -7,6 +7,7 @@ import action from "../handler/action";
 import handleError from "../handler/error";
 import { Income, Prisma } from "../generated/prisma";
 import { auth } from "@/auth";
+import { requireOrganizationFinance } from "@/lib/organizations/access";
 import { ForbiddenError } from "@/lib/http.error";
 
 // Define the Income type with customValues included
@@ -25,7 +26,7 @@ export async function CreateIncome(params: CreateIncome): Promise<ActionResponse
     const validationResult = await action({
         params: {...params, date: new Date(params.date) },
         schema: createIncomeSchema,
-        authorize: false,
+        authorize: true,
 
     });
     if (validationResult instanceof Error)
@@ -35,6 +36,7 @@ export async function CreateIncome(params: CreateIncome): Promise<ActionResponse
       const session = await auth();
       const userId = session?.user?.id as string;
     try {
+        if (params.organizationId) await requireOrganizationFinance(params.organizationId);
         const newIncome = await prisma.income.create({
 
             data: {
@@ -123,6 +125,7 @@ export async function getAllIncome(
             return { success: true, data: null };
         }
 
+        if (income.organizationId) await requireOrganizationFinance(income.organizationId);
         // Authorization check - verify user owns this income
         if (income.userId !== userId) {
             throw new ForbiddenError("You can only view your own income records");

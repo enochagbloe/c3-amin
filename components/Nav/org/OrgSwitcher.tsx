@@ -25,7 +25,7 @@ type Organization = {
 const OrgSwitcher = () => {
   const router = useRouter();
   const pathname = usePathname();
-  
+
   const [organizations, setOrganizations] = React.useState<Organization[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [currentOrg, setCurrentOrg] = React.useState<Organization | null>(null);
@@ -41,10 +41,12 @@ const OrgSwitcher = () => {
         const result = await getUserOrganizations();
         if (result.success && result.data) {
           setOrganizations(result.data as Organization[]);
-          
+
           // Set current org if we're in org workspace
           if (orgIdFromUrl) {
-            const org = (result.data as Organization[]).find((o) => o.id === orgIdFromUrl);
+            const org = (result.data as Organization[]).find(
+              (o) => o.id === orgIdFromUrl,
+            );
             setCurrentOrg(org || null);
           }
         }
@@ -59,7 +61,9 @@ const OrgSwitcher = () => {
   }, [orgIdFromUrl]);
 
   const handleSwitchOrg = (orgId: string) => {
-    router.push(`/org/${orgId}/dashboard`);
+    const org = organizations.find((item) => item.id === orgId);
+    const finance = ["OWNER", "ADMIN"].includes(org?.members[0]?.role ?? "");
+    router.push(`/org/${orgId}/${finance ? "dashboard" : "budget-requests"}`);
   };
 
   const handleExitToPersonal = () => {
@@ -76,6 +80,7 @@ const OrgSwitcher = () => {
     );
   }
 
+  const canUsePersonal = organizations.length === 0 || organizations.some(org => ["OWNER", "ADMIN"].includes(org.members[0]?.role ?? ""));
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -102,7 +107,7 @@ const OrgSwitcher = () => {
         <DropdownMenuSeparator />
 
         {/* Personal Workspace */}
-        <DropdownMenuItem
+        {canUsePersonal && <DropdownMenuItem
           onClick={handleExitToPersonal}
           className="cursor-pointer"
           disabled={!isOrgWorkspace}
@@ -114,7 +119,7 @@ const OrgSwitcher = () => {
               Active
             </Badge>
           )}
-        </DropdownMenuItem>
+        </DropdownMenuItem>}
 
         <DropdownMenuSeparator />
         <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
@@ -124,7 +129,9 @@ const OrgSwitcher = () => {
         {/* Organizations List */}
         {organizations.length === 0 ? (
           <DropdownMenuItem disabled>
-            <span className="text-sm text-muted-foreground">No organizations</span>
+            <span className="text-sm text-muted-foreground">
+              No organizations
+            </span>
           </DropdownMenuItem>
         ) : (
           organizations.map((org) => {
@@ -141,7 +148,9 @@ const OrgSwitcher = () => {
                 <Building2 className="h-4 w-4 mr-2" />
                 <div className="flex-1">
                   <div className="font-medium">{org.name}</div>
-                  <div className="text-xs text-muted-foreground">{userRole}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {userRole}
+                  </div>
                 </div>
                 {isActive && (
                   <Badge variant="secondary" className="ml-2">
@@ -153,7 +162,7 @@ const OrgSwitcher = () => {
           })
         )}
 
-        {isOrgWorkspace && (
+        {isOrgWorkspace && canUsePersonal && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem

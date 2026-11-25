@@ -1,3 +1,5 @@
+import { requireOrganizationFinance } from "@/lib/organizations/access";
+import handleError from "@/lib/handler/error";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import { OpenRouter } from "@openrouter/sdk";
@@ -128,6 +130,7 @@ export async function POST(
       );
     }
 
+    try { await requireOrganizationFinance(orgId); } catch(error) { return handleError(error,"api") as APIErrorResponse; }
     const userId = session.user.id;
 
     // Verify user is a member of this organization
@@ -469,6 +472,7 @@ export async function GET(
 ) {
   const { orgId } = await params;
 
+  try { await requireOrganizationFinance(orgId); } catch(error) { return handleError(error,"api") as APIErrorResponse; }
   // Verify organization exists
   const organization = await prisma.organization.findUnique({
     where: { id: orgId },

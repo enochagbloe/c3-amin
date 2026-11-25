@@ -1,43 +1,20 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import handleError from "@/lib/handler/error";
-import prisma from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import {NextResponse} from "next/server";
+import { auth } from '@/auth';
+import prisma from '@/lib/prisma';
+import { requireOrganizationFinance } from '@/lib/organizations/access';
+import { UnauthorizedError } from '@/lib/http.error';
+import { requestResponse } from '@/lib/budget-requests/http';
 
-const allowedStatuses = ["approved", "pending", "rejected"] as const; // valid enum values
-
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const status = searchParams.get("status");
-  const orgId = searchParams.get("orgId");
-
-  // Build where condition
-  const whereCondition: any = {};
-  
-  // Filter by organizationId or personal (null)
-  if (orgId) {
-    whereCondition.organizationId = orgId;
-  } else {
-    whereCondition.organizationId = null; // Only personal expenses
-  }
-  
-  // Add status filter if valid
-  if (allowedStatuses.includes(status as any)) {
-    whereCondition.status = status as (typeof allowedStatuses)[number];
-  }
-
-  try {
-    const getExpenses = await prisma.expenseTracker.findMany({
-      where: whereCondition,
-      orderBy: { date: "desc" },
-    });
-
-    const totalAmount = getExpenses.reduce((sum, item) => sum +  Number(item.amount), 0);
-
-    return NextResponse.json(
-      { success: true, data: getExpenses, totalAmount },
-      { status: 200 }
-    );
-  } catch (error) {
-    return handleError(error, "api") as APIErrorResponse;
-  }
+export async function GET(request:Request) {
+ const response = await requestResponse(async()=>{
+  const session=await auth(); if(!session?.user?.id)throw new UnauthorizedError();
+  const search=new URL(request.url).searchParams;const orgId=search.get('orgId');
+  if(orgId)await requireOrganizationFinance(orgId);
+  const status=search.get('status');
+  const expenses=await prisma.expenseTracker.findMany({where:{...(orgId?{organizationId:orgId}:{organizationId:null,author:session.user.id}),...(['approved','pending','rejected'].includes(status??'')?{status:status as 'approved'|'pending'|'rejected'}:{})},orderBy:{date:'desc'}});
+  return expenses;
+ });
+ if(!response.ok)return response;
+ const result=await response.json();
+ return NextResponse.json({...result,totalAmount:result.data.reduce((sum:number,item:{amount:number})=>sum+Number(item.amount),0)},{headers:{'Cache-Control':'private, no-store'}});
 }

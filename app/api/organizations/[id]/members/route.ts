@@ -1,65 +1,30 @@
-import handleError from "@/lib/handler/error";
-import {
-  getOrganizationMembers,
-  addOrganizationMember,
-} from "@/lib/actions/org/organization.actions";
-import { NextResponse } from "next/server";
-
-/**
- * GET /api/organizations/:id/members
- * Fetches all members of an organization with pagination
- * Query params: page?, pageSize?
- */
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
+import { requestResponse } from "@/lib/budget-requests/http";
+import { requireOrganizationOwner } from "@/lib/organizations/access";
+import { getOrganizationMembers } from "@/lib/actions/org/organization.actions";
+import { sendInvitation } from "@/lib/invitations/service";
+import { RequestError } from "@/lib/http.error";
+type Context = { params: Promise<{ id: string }> };
+export async function GET(request: Request, { params }: Context) {
+  return requestResponse(async () => {
     const { id } = await params;
-    const { searchParams } = new URL(request.url);
-    const page = searchParams.get("page");
-    const pageSize = searchParams.get("pageSize");
-
+    await requireOrganizationOwner(id);
+    const search = new URL(request.url).searchParams;
     const result = await getOrganizationMembers({
       organizationId: id,
-      ...(page && { page: parseInt(page) }),
-      ...(pageSize && { pageSize: parseInt(pageSize) }),
+      page: Number(search.get("page") ?? 1),
+      pageSize: Number(search.get("pageSize") ?? 20),
     });
-
-    if (!result.success) {
-      return NextResponse.json(result, { status: 400 });
-    }
-
-    return NextResponse.json(result, { status: 200 });
-  } catch (error) {
-    return handleError(error, "api") as APIErrorResponse;
-  }
+    if (!result.success)
+      throw new RequestError(
+        400,
+        result.error?.message ?? "Unable to load members",
+      );
+    return result.data;
+  });
 }
-
-/**
- * POST /api/organizations/:id/members
- * Adds a user to the organization with a specified role
- * Body: { userId, role }
- * Requires OWNER or ADMIN role
- */
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-    const body = await request.json();
-    const result = await addOrganizationMember({
-      organizationId: id,
-      ...body,
-    });
-
-    if (!result.success) {
-      return NextResponse.json(result, { status: 400 });
-    }
-
-    return NextResponse.json(result, { status: 201 });
-  } catch (error) {
-    return handleError(error, "api") as APIErrorResponse;
-  }
+export async function POST(request: Request, { params }: Context) {
+  return requestResponse(
+    async () => sendInvitation((await params).id, await request.json()),
+    201,
+  );
 }

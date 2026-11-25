@@ -1,59 +1,49 @@
-import handleError from "@/lib/handler/error";
+import { requestResponse } from "@/lib/budget-requests/http";
+import { requireOrganizationOwner } from "@/lib/organizations/access";
 import {
   updateOrganizationMemberRole,
   removeOrganizationMember,
 } from "@/lib/actions/org/organization.actions";
-import { NextResponse } from "next/server";
-
-/**
- * PUT /api/organizations/:id/members/:memberId
- * Updates a member's role within the organization
- * Body: { role }
- * Requires OWNER or ADMIN role
- */
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string; memberId: string }> }
-) {
-  try {
-    const { memberId } = await params;
-    const body = await request.json();
-    const result = await updateOrganizationMemberRole({
-      memberId,
-      ...body,
-    });
-
-    if (!result.success) {
-      return NextResponse.json(result, { status: 400 });
-    }
-
-    return NextResponse.json(result, { status: 200 });
-  } catch (error) {
-    return handleError(error, "api") as APIErrorResponse;
-  }
+import { RequestError, NotFoundError } from "@/lib/http.error";
+import prisma from "@/lib/prisma";
+import { z } from "zod";
+type Context = { params: Promise<{ id: string; memberId: string }> };
+async function target(params: Context["params"]) {
+  const { id, memberId } = await params;
+  await requireOrganizationOwner(id);
+  const member = await prisma.organizationMember.findFirst({
+    where: { id: memberId, organizationId: id },
+  });
+  if (!member) throw new NotFoundError("Member");
+  return member;
 }
-
-/**
- * DELETE /api/organizations/:id/members/:memberId
- * Removes a user from the organization
- * Requires OWNER or ADMIN role
- */
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string; memberId: string }> }
-) {
-  try {
-    const { memberId } = await params;
-    const result = await removeOrganizationMember({
-      memberId,
+export async function PUT(request: Request, { params }: Context) {
+  return requestResponse(async () => {
+    const member = await target(params);
+    const { role } = z
+      .object({ role: z.enum(["ADMIN", "MEMBER", "VIEWER"]) })
+      .parse(await request.json());
+    const result = await updateOrganizationMemberRole({
+      memberId: member.id,
+      role,
     });
-
-    if (!result.success) {
-      return NextResponse.json(result, { status: 400 });
-    }
-
-    return NextResponse.json(result, { status: 200 });
-  } catch (error) {
-    return handleError(error, "api") as APIErrorResponse;
-  }
+    if (!result.success)
+      throw new RequestError(
+        400,
+        result.error?.message ?? "Unable to change role",
+      );
+    return result.data;
+  });
+}
+export async function DELETE(_: Request, { params }: Context) {
+  return requestResponse(async () => {
+    const member = await target(params);
+    const result = await removeOrganizationMember({ memberId: member.id });
+    if (!result.success)
+      throw new RequestError(
+        400,
+        result.error?.message ?? "Unable to remove member",
+      );
+    return result.data;
+  });
 }

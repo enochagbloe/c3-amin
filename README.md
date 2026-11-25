@@ -51,3 +51,31 @@ Endpoints (authenticated organization membership required):
 - `GET/PUT /api/organizations/:id/budget-approval-settings` — read route / owner-only assignment `{ reviewerId, pastorId }`.
 
 Run workflow tests against an isolated Neon branch and a local server using that branch: `node --env-file=.env.budget-test scripts/budget-requests-smoke.cjs`. The test creates and deletes its own fixture organizations and users. Never point the test at a server using a different database. It checks automatic routing, private access, owner permissions, sequential approvals, race conditions, rejection, self-approval, reassignment and audit history.
+
+## Team invitations and member permissions
+
+The organization owner opens **Team** to configure Resend, invite members by email, inspect pending invitations, resend or revoke links, check delivery, and remove members. New invitations always grant the restricted `MEMBER` role after acceptance; requesting a different role in the invitation payload cannot elevate access.
+
+In **Team → Email delivery**, save a Resend API key and a sender address on a verified Resend domain. The key is encrypted with AES-256-GCM in a separate settings table, using `MAIL_ENCRYPTION_KEY` when present and otherwise the stable application `AUTH_SECRET`. The key is never returned to the browser. `RESEND_API_KEY` and `RESEND_FROM_EMAIL` can alternatively supply app-wide defaults. No real key is committed. Sending is disabled until configuration is saved. `SENT` means Resend accepted the email; **Check delivery** retrieves the provider’s latest delivery event (the key needs email read permission for that optional check).
+
+Invitation links expire after seven days, store only a token hash, and must be accepted while signed in with the invited email. Opening the link never consumes it. Reissuing an invitation invalidates the previous link, and revocation immediately prevents acceptance. Existing accounts sign in; new users sign up and return to the invitation. Membership is not granted just because an email was sent.
+
+| Organization role | Available access |
+| --- | --- |
+| Owner | Team and email setup, approval assignments, all budget requests, organization finance and settings |
+| Admin | Organization finance and their permitted budget requests; no team or email setup |
+| Member / Viewer | Personal settings and their own budget requests |
+| Assigned reviewer / pastor | Adds assigned budget visibility and the applicable approval stage; does not grant finance access |
+
+Members are redirected to budget requests on normal sign-in and cannot access the old finance navigation through the personal workspace. Organization finance pages, income/expense endpoints, financial AI, organization detail data, roster access, and financial server actions enforce permissions independently of the navigation. Workspace listings omit financial records for restricted members. Personal finance queries are scoped to their author and never include organization records. Profile updates cannot change email, role, or status through the personal settings API.
+
+The invitation/permission integration test is `scripts/team-smoke.cjs`. Run it only against an isolated database and a local server configured with an explicit test-only Resend adapter. Its Resend responses are simulated and no real email is sent. The production app always calls Resend’s fixed HTTPS API.
+
+To run the invitation checks locally (PowerShell), first build the app and provide a separate `.env.budget-test` pointing to an isolated migrated database. In one terminal:
+
+```powershell
+$env:TEAM_TEST_OUTBOX = Join-Path $env:TEMP 'c3-team-test-outbox.jsonl'
+node --env-file=.env.budget-test --require ./scripts/testing/resend-preload.cjs node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3000
+```
+
+In another terminal, set the same `TEAM_TEST_OUTBOX` path and run `node --env-file=.env.budget-test scripts/team-smoke.cjs`. The preloader only runs when explicitly supplied to Node; production startup does not load it. It intercepts Resend calls for isolated tests and captures test email payloads locally.

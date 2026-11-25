@@ -1,5 +1,7 @@
+import { auth } from "@/auth";
+import { UnauthorizedError } from "@/lib/http.error";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use server";
+
 
 /*AI Intent Handlers Handle specific intents with database operations*/
 
@@ -279,6 +281,7 @@ export async function handleQuerySpending(parsed: ParsedIntent): Promise<Handler
     const { start, end } = getDateRange(period);
 
     const whereClause: Record<string, unknown> = {
+      ...(await personalFinanceFilter()),
       date: { gte: start, lte: end },
       amount: { gte: 0 }, // Only expenses (positive amounts)
     };
@@ -345,7 +348,8 @@ export async function handleQueryIncome(parsed: ParsedIntent): Promise<HandlerRe
 
     const income = await prisma.expenseTracker.findMany({
       where: {
-        date: { gte: start, lte: end },
+        ...(await personalFinanceFilter()),
+      date: { gte: start, lte: end },
         amount: { lt: 0 }, // Income is stored as negative
       },
       orderBy: { date: "desc" },
@@ -387,7 +391,7 @@ export async function handleFinancialSummary(parsed: ParsedIntent): Promise<Hand
     const { start, end } = getDateRange(period);
 
     const allTransactions = await prisma.expenseTracker.findMany({
-      where: { date: { gte: start, lte: end } },
+      where: { ...(await personalFinanceFilter()), date: { gte: start, lte: end } },
       orderBy: { date: "desc" },
     });
 
@@ -442,7 +446,7 @@ export async function getFinancialContext(period: string = "month") {
     const { start, end } = getDateRange(period);
 
     const transactions = await prisma.expenseTracker.findMany({
-      where: { date: { gte: start, lte: end } },
+      where: { ...(await personalFinanceFilter()), date: { gte: start, lte: end } },
     });
 
     const expenses = transactions.filter((t) => t.amount >= 0);
@@ -907,4 +911,9 @@ export async function getOrgFinancialContext(
     console.error("Error getting organization financial context:", error);
     return null;
   }
+}
+
+async function personalFinanceFilter() {
+ const session=await auth();if(!session?.user?.id)throw new UnauthorizedError();
+ return {author:session.user.id,organizationId:null};
 }

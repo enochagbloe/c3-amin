@@ -35,7 +35,7 @@ export async function requestResponse(
           ? error.message
           : error instanceof SyntaxError
             ? "Invalid JSON body"
-            : "Unable to process this budget request";
+            : "Unable to process this request";
     const code =
       error instanceof ZodError || error instanceof SyntaxError
         ? 400

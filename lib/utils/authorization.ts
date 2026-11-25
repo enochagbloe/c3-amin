@@ -94,7 +94,7 @@ export async function verifyExpenseAccess(
   expense: { author: string; organizationId: string | null }
 ): Promise<void> {
   if (expense.organizationId) {
-    await verifyOrganizationMember(userId, expense.organizationId);
+    await verifyOrganizationAdmin(userId, expense.organizationId);
   } else if (expense.author !== userId) {
     throw new ForbiddenError("You can only access your own expenses");
   }

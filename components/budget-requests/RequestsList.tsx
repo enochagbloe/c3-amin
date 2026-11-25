@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { budgetApi, budgetEndpoint } from "@/lib/budget-requests/client";
 import { budgetAmount, type BudgetRequest } from "@/lib/budget-requests/types";
 import RequestStatus from "./RequestStatus";
+import { useOrganizationAccess } from "@/components/organizations/OrganizationAccessProvider";
 
 type Result = {
   requests: BudgetRequest[];
@@ -21,6 +22,7 @@ export default function RequestsList({
 }: {
   organizationId: string;
 }) {
+  const access = useOrganizationAccess();
   const [scope, setScope] = useState("mine");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<Result | null>(null);
@@ -94,8 +96,12 @@ export default function RequestsList({
       >
         <TabsList className="flex h-auto w-fit flex-wrap">
           <TabsTrigger value="mine">My requests</TabsTrigger>
-          <TabsTrigger value="inbox">Needs my approval</TabsTrigger>
-          <TabsTrigger value="all">Oversight</TabsTrigger>
+          {access.canReviewBudgets && (
+            <TabsTrigger value="inbox">Needs my approval</TabsTrigger>
+          )}
+          {access.canReviewBudgets && (
+            <TabsTrigger value="all">Oversight</TabsTrigger>
+          )}
         </TabsList>
       </Tabs>
       <p className="text-sm text-muted-foreground">

@@ -136,7 +136,8 @@ export async function POST(request: Request) {
   try {
     // Authentication
     const session = await auth();
-    const userId = session?.user?.id || "anonymous";
+    if(!session?.user?.id)return NextResponse.json({error:"Authentication required"},{status:401});
+    const userId = session.user.id;
 
     // Rate limiting
     if (!checkRateLimit(userId)) {

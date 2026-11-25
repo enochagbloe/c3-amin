@@ -1,38 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import handleError from "@/lib/handler/error";
-import prisma from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { auth } from '@/auth';
+import prisma from '@/lib/prisma';
+import { requireOrganizationFinance } from '@/lib/organizations/access';
+import { UnauthorizedError } from '@/lib/http.error';
+import { requestResponse } from '@/lib/budget-requests/http';
 
-export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const incomeId = searchParams.get("incomeId");
-    const orgId = searchParams.get("orgId");
-
-    // Build where condition
-    const whereCondition: any = {};
-    
-    if (incomeId) {
-        whereCondition.id = incomeId;
-    }
-    
-    // Filter by organizationId or personal (null)
-    if (orgId) {
-        whereCondition.organizationId = orgId;
-    } else {
-        whereCondition.organizationId = null; // Only personal income
-    }
-
-    try {
-        const getIncome = await prisma.income.findMany({
-            where: whereCondition,
-            orderBy: { date: "desc" },
-        });
-
-        return NextResponse.json(
-            { success: true, data: getIncome },
-            { status: 200 }
-        );
-    } catch (error) {
-        return handleError(error, "api") as APIErrorResponse;
-    }
+export async function GET(request:Request) {
+ return requestResponse(async()=>{
+  const session=await auth();if(!session?.user?.id)throw new UnauthorizedError();
+  const search=new URL(request.url).searchParams;const orgId=search.get('orgId');
+  if(orgId)await requireOrganizationFinance(orgId);
+  return prisma.income.findMany({where:{...(orgId?{organizationId:orgId}:{organizationId:null,userId:session.user.id}),...(search.get('incomeId')?{id:search.get('incomeId')!}:{})},orderBy:{date:'desc'}});
+ });
 }

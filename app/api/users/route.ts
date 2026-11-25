@@ -7,8 +7,11 @@ import { UnauthorizedError, ForbiddenError } from '@/lib/http.error';
 import { UserSchema } from '@/lib/validations';
 export async function GET() {
  try {
-  if (!(await auth())?.user?.id) throw new UnauthorizedError();
-  const users = await prisma.user.findMany({ select: {id:true,staffId:true,name:true,email:true,status:true,createdAt:true,role:true} });
+  const session=await auth();if(!session?.user?.id)throw new UnauthorizedError();
+  const userId=session.user.id;
+  const rosters=await prisma.organizationMember.findMany({where:{userId,role:{in:['OWNER','ADMIN']}},select:{organizationId:true}});
+  const shared=await prisma.organizationMember.findMany({where:{organizationId:{in:rosters.map(member=>member.organizationId)}},select:{userId:true}});
+  const users = await prisma.user.findMany({ where:{id:{in:[userId,...shared.map(member=>member.userId)]}}, select: {id:true,staffId:true,name:true,email:true,status:true,createdAt:true,role:true} });
   return NextResponse.json({success:true,data:users.map(user=>({...user,date:user.createdAt,userId:user.id}))});
  } catch(error) { return handleError(error,'api') as APIErrorResponse; }
 }

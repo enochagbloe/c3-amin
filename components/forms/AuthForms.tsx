@@ -1,4 +1,11 @@
-import { FieldValues, FormProvider, Path, SubmitHandler, useForm } from "react-hook-form";
+import { useEffect, useState } from "react";
+import {
+  FieldValues,
+  FormProvider,
+  Path,
+  SubmitHandler,
+  useForm,
+} from "react-hook-form";
 import { FormControl, FormField, FormItem, FormLabel } from "../ui/form";
 import { Input } from "../ui/input";
 import Link from "next/link";
@@ -29,6 +36,12 @@ const AuthForms = <T extends FieldValues>({
     defaultValues,
   });
   const router = useRouter();
+  const [destination, setDestination] = useState("/");
+  useEffect(() => {
+    const next = new URLSearchParams(window.location.search).get("next");
+    if (next && /^\/(invitations|org)\//.test(next) && !next.includes("\\"))
+      setDestination(next);
+  }, []);
 
   const handleSubmit: SubmitHandler<T> = async (data) => {
     const results = (await onSubmit(data)) as ActionResponse;
@@ -37,9 +50,13 @@ const AuthForms = <T extends FieldValues>({
       toast.success(
         formType === "SIGN_IN"
           ? "Successfully signed in!"
-          : "Successfully signed up!"
+          : "Successfully signed up!",
       );
-      router.push(ROUTES.HOME);
+      router.push(
+        formType === "SIGN_UP"
+          ? `/sign-in?next=${encodeURIComponent(destination)}`
+          : destination,
+      );
     } else {
       // Handle errors
       toast.error(results?.error?.message || "An error occurred");
@@ -93,7 +110,7 @@ const AuthForms = <T extends FieldValues>({
           <p>
             Don&apos;t have an account?{" "}
             <Link
-              href={ROUTES.SIGN_UP}
+              href={`${ROUTES.SIGN_UP}?next=${encodeURIComponent(destination)}`}
               className="paragraph-semibold primary-text-gradient"
             >
               Sign up
@@ -103,7 +120,7 @@ const AuthForms = <T extends FieldValues>({
           <p>
             Already have an account?{" "}
             <Link
-              href={ROUTES.SIGN_IN}
+              href={`${ROUTES.SIGN_IN}?next=${encodeURIComponent(destination)}`}
               className="paragraph-semibold primary-text-gradient"
             >
               Sign in

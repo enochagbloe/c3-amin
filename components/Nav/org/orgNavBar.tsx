@@ -1,33 +1,26 @@
-import React from "react";
-
 import { ThemeToggle } from "@/components/ui/theme";
-import UserAvatar from "@/components/UserAvatar";
 import OrgMobileSidebar from "./orgMobileSIdebar";
 import OrgSwitcher from "./OrgSwitcher";
-// import { auth } from "@/auth";
-
-const OrgNavBar = async () => {
-  // const session = await auth();
-  // const userIdName = session?.user?.name;
-  // const userId = session?.user?.id;
+export default function OrgNavBar({
+  name,
+  orgName,
+}: {
+  name: string;
+  orgName: string;
+}) {
   return (
-    <div className="w-full h-16">
-      <div className="flex justify-between items-center px-4 h-full">
-        <div className="flex gap-4">
-          <span className="lg:hidden">
-            <OrgMobileSidebar />
-          </span>
-          <h2> NavLogo</h2>
-        </div>
-        <h2> Local search </h2>
-        <div className="flex items-center gap-4">
-          <OrgSwitcher />
-          <UserAvatar name='enoch agbloe' id='' />
-          <ThemeToggle />
-        </div>
+    <header className="flex h-16 items-center justify-between gap-3 border-b px-4">
+      <div className="flex items-center gap-3">
+        <span className="lg:hidden">
+          <OrgMobileSidebar orgName={orgName} />
+        </span>
+        <span className="font-semibold">C3 Church</span>
       </div>
-    </div>
+      <div className="flex items-center gap-3">
+        <OrgSwitcher />
+        <span className="hidden text-sm sm:inline">{name}</span>
+        <ThemeToggle />
+      </div>
+    </header>
   );
-};
-
-export default OrgNavBar;
+}

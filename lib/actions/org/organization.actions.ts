@@ -17,6 +17,7 @@ import {
   GetOrganizationMembersSchema,
 } from "@/lib/validations";
 import { auth } from "@/auth";
+import { requireOrganizationFinance, requireOrganizationOwner } from "@/lib/organizations/access";
 import { ForbiddenError, NotFoundError } from "@/lib/http.error";
 
 
@@ -97,6 +98,7 @@ export async function getOrganization(
   const userId = session?.user?.id as string;
 
   try {
+    await requireOrganizationFinance(organizationId);
     // First, verify user is a member of this organization
     const membership = await prisma.organizationMember.findUnique({
       where: {
@@ -157,8 +159,8 @@ export async function getUserOrganizations(): Promise<
         },
       },
       include: {
-        members: true,
-        expenses: true,
+        members: { where: { userId } },
+        expenses: { where: { organization: { members: { some: { userId, role: { in: ["OWNER", "ADMIN"] } } } } } },
       },
     });
 
@@ -291,6 +293,7 @@ export async function addOrganizationMember(
   const currentUserId = session?.user?.id as string;
 
   try {
+    await requireOrganizationOwner(organizationId);
     // Check if current user is OWNER or ADMIN
     const currentMembership = await prisma.organizationMember.findUnique({
       where: {
@@ -368,6 +371,7 @@ export async function updateOrganizationMemberRole(
       throw new NotFoundError("Member");
     }
 
+    await requireOrganizationOwner(member.organizationId);
     // Check if current user is OWNER or ADMIN of the org
     const currentMembership = await prisma.organizationMember.findUnique({
       where: {
@@ -453,6 +457,7 @@ export async function removeOrganizationMember(
       }
     }
 
+    await requireOrganizationOwner(member.organizationId);
     // Check if current user is OWNER or ADMIN
     const currentMembership = await prisma.organizationMember.findUnique({
       where: {
@@ -467,6 +472,9 @@ export async function removeOrganizationMember(
       throw new ForbiddenError("You must be an OWNER or ADMIN to remove members");
     }
 
+    const assignedOrganization = await prisma.organization.findFirst({ where: { id: member.organizationId, OR: [{ budgetReviewerId: member.userId }, { budgetPastorId: member.userId }] } });
+    const pendingAssignment = await prisma.budgetRequest.findFirst({ where: { organizationId: member.organizationId, status: { in: ['PENDING_MAIN', 'PENDING_SECOND'] }, OR: [{ mainApproverId: member.userId }, { secondApproverId: member.userId }] } });
+    if (assignedOrganization || pendingAssignment) throw new Error('Assign another budget reviewer or pastor before removing this member');
     await prisma.organizationMember.delete({
       where: { id: memberId },
     });
@@ -506,6 +514,7 @@ export async function getOrganizationMembers(
   const userId = session?.user?.id as string;
 
   try {
+    await requireOrganizationOwner(organizationId);
     // Check if user is a member of the organization
     const membership = await prisma.organizationMember.findUnique({
       where: {

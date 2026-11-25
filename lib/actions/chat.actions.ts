@@ -6,7 +6,7 @@ import { Prisma } from '@/lib/generated/prisma';
 import type { IChatSessionDoc } from '@/database/chatSession.model';
 import handleError from '../handler/error';
 import { NotFoundError, UnauthorizedError } from '../http.error';
-import { verifyOrganizationMember } from '../utils/authorization';
+import { verifyOrganizationAdmin } from '../utils/authorization';
 import { z } from 'zod';
 
 const organizationIdSchema = z.string().uuid().optional();
@@ -29,7 +29,7 @@ async function ownedSession(id: string, userId: string) {
   z.string().uuid().parse(id);
   const session = await prisma.chatSession.findFirst({ where: { id, userId }, include });
   if (!session) throw new NotFoundError('Chat session not found');
-  if (session.organizationId) await verifyOrganizationMember(userId, session.organizationId);
+  if (session.organizationId) await verifyOrganizationAdmin(userId, session.organizationId);
   return session;
 }
 
@@ -37,7 +37,7 @@ export async function getChatSessions(params: { organizationId?: string } = {}):
   try {
     const userId = await currentUser();
     const organizationId = organizationIdSchema.parse(params.organizationId);
-    if (organizationId) await verifyOrganizationMember(userId, organizationId);
+    if (organizationId) await verifyOrganizationAdmin(userId, organizationId);
     const sessions = await prisma.chatSession.findMany({
       where: { userId, organizationId: organizationId ?? null },
       orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }], include,
@@ -50,7 +50,7 @@ export async function createChatSession(params: { title?: string; organizationId
   try {
     const userId = await currentUser();
     const organizationId = organizationIdSchema.parse(params.organizationId);
-    if (organizationId) await verifyOrganizationMember(userId, organizationId);
+    if (organizationId) await verifyOrganizationAdmin(userId, organizationId);
     const title = z.string().min(1).max(200).default('New Chat').parse(params.title);
     const session = await prisma.chatSession.create({ data: { userId, organizationId, title }, include });
     return { success: true, data: serialize(session) };
@@ -61,7 +61,7 @@ export async function createSessionWithMessage(params: { role: 'user' | 'assista
   try {
     const userId = await currentUser();
     const organizationId = organizationIdSchema.parse(params.organizationId);
-    if (organizationId) await verifyOrganizationMember(userId, organizationId);
+    if (organizationId) await verifyOrganizationAdmin(userId, organizationId);
     const message = messageSchema.parse(params);
     const session = await prisma.chatSession.create({ data: {
       userId, organizationId, title: message.role === 'user' ? titleFor(message.content) : 'New Chat',
