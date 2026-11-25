@@ -4,33 +4,37 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id             String        @id @default(uuid())
-  name           String
-  username       String        @unique
-  email          String        @unique
-  firstName      String?
-  lastName       String?
-  bio            String?
-  phone          String?
-  city           String?
-  status         String        @default("active")
-  role           String        @default("member")
-  staffId        String?
-  organizationId String?
-  image          String?
-  location       String?
-  portfolio      String?
-  reputation     Int           @default(0)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  accounts       Account[]
-  chats          ChatSession[]
+  id                    String               @id @default(uuid())
+  name                  String
+  username              String               @unique
+  email                 String               @unique
+  firstName             String?
+  lastName              String?
+  bio                   String?
+  phone                 String?
+  city                  String?
+  status                String               @default("active")
+  role                  String               @default("member")
+  staffId               String?
+  organizationId        String?
+  image                 String?
+  location              String?
+  portfolio             String?
+  reputation            Int                  @default(0)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  accounts              Account[]
+  chats                 ChatSession[]
+  budgetRequests        BudgetRequest[]      @relation("BudgetRequester")
+  mainBudgetApprovals   BudgetRequest[]      @relation("MainBudgetApprover")
+  secondBudgetApprovals BudgetRequest[]      @relation("SecondBudgetApprover")
+  budgetRequestEvents   BudgetRequestEvent[]
 
   @@unique([organizationId, staffId])
 }
@@ -153,18 +157,80 @@ enum FieldType {
 }
 
 model Organization {
-  id       String   @id @default(uuid())
-  name     String
-  email    String? // contact email for the org
-  bio      String? // short description / about
-  industry Industry
+  budgetReviewerId String?
+  budgetPastorId   String?
+  id               String   @id @default(uuid())
+  name             String
+  email            String? // contact email for the org
+  bio              String? // short description / about
+  industry         Industry
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  members  OrganizationMember[]
-  expenses ExpenseTracker[]
-  income   Income[]
+  members        OrganizationMember[]
+  expenses       ExpenseTracker[]
+  income         Income[]
+  budgetRequests BudgetRequest[]
+}
+
+enum BudgetRequestStatus {
+  PENDING_MAIN
+  PENDING_SECOND
+  APPROVED
+  REJECTED
+}
+
+enum BudgetRequestStage {
+  SUBMITTED
+  MAIN
+  SECOND
+}
+
+enum BudgetRequestAction {
+  REASSIGNED
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model BudgetRequest {
+  id               String               @id @default(uuid())
+  organizationId   String
+  organization     Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requesterId      String
+  requester        User                 @relation("BudgetRequester", fields: [requesterId], references: [id], onDelete: Restrict)
+  mainApproverId   String
+  mainApprover     User                 @relation("MainBudgetApprover", fields: [mainApproverId], references: [id], onDelete: Restrict)
+  secondApproverId String
+  secondApprover   User                 @relation("SecondBudgetApprover", fields: [secondApproverId], references: [id], onDelete: Restrict)
+  title            String
+  description      String
+  amount           Decimal              @db.Decimal(14, 2)
+  currency         String               @default("USD")
+  neededBy         DateTime?
+  status           BudgetRequestStatus  @default(PENDING_MAIN)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  events           BudgetRequestEvent[]
+
+  @@index([organizationId, requesterId, createdAt])
+  @@index([organizationId, mainApproverId, status])
+  @@index([organizationId, secondApproverId, status])
+}
+
+model BudgetRequestEvent {
+  id        String              @id @default(uuid())
+  requestId String
+  request   BudgetRequest       @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  actorId   String
+  actor     User                @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  stage     BudgetRequestStage
+  action    BudgetRequestAction
+  comment   String?
+  createdAt DateTime            @default(now())
+
+  @@index([requestId, createdAt])
 }
 
 enum Industry {

@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import OrgChatPage from "../propmt/page";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 type Organization = {
   id: string;
@@ -90,6 +92,10 @@ const OrgDashboardPage = () => {
         <TabsContent value="dashboard" className="w-full">
             <main>
      <div className="container mx-auto p-6 space-y-6">
+      <div className="flex flex-wrap justify-end gap-3">
+        <Button asChild variant="outline"><Link href={`/org/${orgId}/budget-requests`}>Request history</Link></Button>
+        <Button asChild><Link href={`/org/${orgId}/budget-requests/new`}>Request budget</Link></Button>
+      </div>
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { getOrganization } from "@/lib/actions/org/organization.actions";
+import ApprovalSettings from "@/components/budget-requests/ApprovalSettings";
 
 const OrgSettingsPage = () => {
   const params = useParams();
@@ -137,6 +138,7 @@ const OrgSettingsPage = () => {
           </p>
         </div>
 
+        <ApprovalSettings organizationId={orgId} />
         {/* General Settings */}
         <Card className="mb-6">
           <CardHeader>

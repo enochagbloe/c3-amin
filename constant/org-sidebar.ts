@@ -9,6 +9,12 @@ import {
 
 export const orgSidebarLinks = [
   {
+    icon: FileText,
+    label: "Budget requests",
+    route: "/budget-requests",
+    badge: null,
+  },
+  {
     icon: Home,
     label: "Dashboard",
     route: "/dashboard",
