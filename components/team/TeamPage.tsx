@@ -5,21 +5,21 @@ import InvitationForm from "./InvitationForm";
 import PendingInvitations from "./PendingInvitations";
 import TeamMembers from "./TeamMembers";
 export default function TeamPage({
-  organizationId,
+  organizationId, embedded = false,
 }: {
-  organizationId: string;
+  organizationId: string; embedded?: boolean;
 }) {
   const [configured, setConfigured] = useState(false),
     [revision, setRevision] = useState(0);
   return (
-    <main className="space-y-6 p-3 sm:p-6">
-      <div>
+    <main className={embedded ? "space-y-6" : "space-y-6 p-3 sm:p-6"}>
+      {!embedded && <div>
         <h1 className="text-3xl font-bold">Team</h1>
         <p className="mt-2 text-muted-foreground">
           Invite people by email and manage membership in your church
           organization.
         </p>
-      </div>
+      </div>}
       <EmailSettings organizationId={organizationId} onReady={setConfigured} />
       <InvitationForm
         organizationId={organizationId}

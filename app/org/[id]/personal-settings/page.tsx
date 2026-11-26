@@ -1,4 +1,2 @@
-import PersonalSettings from "@/components/team/PersonalSettings";
-export default function Page() {
-  return <PersonalSettings />;
-}
+import {redirect} from 'next/navigation';
+export default async function Page({params}:{params:Promise<{id:string}>}) { redirect(`/org/${(await params).id}/settings`); }

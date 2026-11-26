@@ -24,8 +24,8 @@ export default async function OrgLayout({
         <OrgNavBar name={access.name} orgName={access.organizationName} />
         <div className="flex">
           <OrgSidebar orgName={access.organizationName} />
-          <section className="flex max-h-screen min-w-0 flex-1 flex-col overflow-y-auto px-3 pb-3 pt-8 sm:px-6">
-            <div>{children}</div>
+          <section className="app-content min-w-0 flex-1 px-4 py-8 sm:px-6 lg:px-8">
+            <div className="mx-auto w-full max-w-6xl">{children}</div>
           </section>
         </div>
       </main>

@@ -20,7 +20,7 @@ type Profile = {
   phone: string | null;
   bio: string | null;
 };
-export default function PersonalSettings() {
+export default function PersonalSettings({ embedded = false }: { embedded?: boolean }) {
   const [profile, setProfile] = useState<Profile | null>(null),
     [saving, setSaving] = useState(false),
     [error, setError] = useState("");
@@ -57,11 +57,11 @@ export default function PersonalSettings() {
     }
   }
   return (
-    <main className="space-y-6 p-3 sm:p-6">
-      <div>
+    <main className={embedded ? "space-y-6" : "space-y-6 p-3 sm:p-6"}>
+      {!embedded && <div>
         <h1 className="text-3xl font-bold">Personal settings</h1>
         <p className="mt-2 text-muted-foreground">Update your own profile.</p>
-      </div>
+      </div>}
       <Card className="max-w-2xl">
         <CardHeader>
           <CardTitle>Your profile</CardTitle>

@@ -1,20 +1,12 @@
 import {
   Home,
   BarChart3,
-  Users,
   Settings,
   DollarSign,
   FileText,
 } from "lucide-react";
 
 export const orgSidebarLinks = [
-  { icon: Settings, label: "Personal settings", route: "/personal-settings", badge: null },
-  {
-    icon: FileText,
-    label: "Budget requests",
-    route: "/budget-requests",
-    badge: null,
-  },
   {
     icon: Home,
     label: "Dashboard",
@@ -31,12 +23,6 @@ export const orgSidebarLinks = [
     icon: FileText,
     label: "Income",
     route: "/income",
-    badge: null,
-  },
-  {
-    icon: Users,
-    label: "Team",
-    route: "/members",
     badge: null,
   },
   {

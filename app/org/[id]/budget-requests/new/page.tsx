@@ -7,7 +7,7 @@ export default async function Page({
 }) {
   const { id } = await params;
   return (
-    <main className="space-y-6 p-3 sm:p-6">
+    <main className="mx-auto w-full max-w-3xl space-y-6">
       <Link
         href={`/org/${id}/budget-requests`}
         className="text-sm text-muted-foreground hover:underline"

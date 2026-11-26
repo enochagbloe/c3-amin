@@ -44,7 +44,7 @@
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.25rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -137,3 +137,22 @@
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* Shared application layout: calm surfaces, readable widths and deliberate dividers. */
+html { scroll-behavior: auto; }
+body { line-height: 1.55; }
+h1 { letter-spacing: -0.025em; line-height: 1.2; }
+[data-slot="card"] { border-radius: 0; box-shadow: none; }
+[data-slot="card-title"] { line-height: 1.4; }
+[data-slot="tabs-list"] { background: transparent; border-radius: 0; padding: 0; gap: 1.25rem; border-bottom: 1px solid var(--border); }
+[data-slot="tabs-trigger"] { flex: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; box-shadow: none; padding: 0.75rem 0; color: var(--muted-foreground); }
+[data-slot="tabs-trigger"][data-state="active"] { border-bottom-color: var(--foreground); color: var(--foreground); background: transparent; box-shadow: none; }
+[data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"], [data-slot="button"], [data-slot="badge"] { border-radius: 3px; box-shadow: none; }
+[data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="popover-content"], [data-slot="dropdown-menu-content"] { border-radius: 4px; }
+.app-content > div > main { padding: 0; }
+.app-content [data-slot="tabs-content"] > main { padding: 0; }
+.app-content table th { font-weight: 500; color: var(--muted-foreground); }
+.app-content table td, .app-content table th { padding-top: 0.95rem; padding-bottom: 0.95rem; }
+/* State changes remain immediate; only functional loading indicators keep motion. */
+*, *::before, *::after { transition-duration: 0s !important; scroll-behavior: auto !important; }
+[class*="animate-in"], [class*="animate-out"], .animate-pulse, .animate-bounce { animation: none !important; }

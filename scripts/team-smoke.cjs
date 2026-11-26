@@ -58,8 +58,13 @@ function deliveredToken(email) {
   assert.equal((await owner(`${invites}/${sent.data.id}`)).data.emailStatus, 'DELIVERED');
   for (const path of [`/api/budgetTracker?orgId=${org.id}`, `/api/incomeTracker?orgId=${org.id}`, root + '/members', invites, settings]) assert.equal((await invited(path)).code, 403, path);
   assert.equal((await invited(`/api/ai/organization/${org.id}`, 'POST', { message: 'Show income' })).code, 403);
-  for (const tab of ['income', 'expenses', 'analytics', 'dashboard', 'members', 'settings', 'propmt']) { const response = await invited(`/org/${org.id}/${tab}`); assert.equal(response.code, 307, tab); assert(response.location.endsWith('/budget-requests')); }
-  assert.equal((await invited(`/org/${org.id}/personal-settings`)).code, 200);
+  for (const tab of ['income', 'expenses', 'analytics', 'members', 'propmt']) { const response = await invited(`/org/${org.id}/${tab}`); assert.equal(response.code, 307, tab); assert(response.location.endsWith('/budget-requests')); }
+  assert.equal((await invited(`/org/${org.id}/personal-settings`)).code, 307);
+  for (const tab of ['dashboard', 'settings', 'settings?tab=team']) {
+    const page = await invited(`/org/${org.id}/${tab}`);
+    assert.equal(page.code, 200, tab);
+    assert(!page.html.includes('Invite a member'), 'Members must not receive team management');
+  }
   assert.equal((await invited('/api/profile', 'PATCH', { name: 'My name', phone: '', bio: '', role: 'ADMIN' })).code, 400);
   assert.equal((await invited('/api/profile', 'PATCH', { name: 'My name', phone: '', bio: 'Church member' })).code, 200);
   const organizations = (await invited('/api/organizations')).data; assert.equal(organizations.find(item => item.id === org.id).expenses.length, 0, 'Workspace listing must not leak financial rows');

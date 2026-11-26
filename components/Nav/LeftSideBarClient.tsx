@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import NavLinks from "./NavLinks";
 import { cn } from "@/lib/utils";
 
@@ -13,16 +12,14 @@ interface LeftSideBarClientProps {
 }
 
 const LeftSideBarClient = ({ user }: LeftSideBarClientProps) => {
-  const [isCollapsed, setIsCollapsed] = React.useState(true);
+  const isCollapsed = false;
 
   return (
     <aside 
       className={cn(
-        "group sticky left-0 top-0 flex h-screen flex-col border-r bg-background transition-all duration-300 max-sm:hidden",
-        isCollapsed ? "w-16" : "w-64"
+        "group sticky left-0 top-0 hidden h-[calc(100svh-4rem)] flex-col border-r lg:flex bg-background transition-all duration-300 max-sm:hidden",
+        isCollapsed ? "w-16" : "w-56"
       )}
-      onMouseEnter={() => setIsCollapsed(false)}
-      onMouseLeave={() => setIsCollapsed(true)}
     >
       {/* Header */}
       <div className="flex h-16 items-center border-b px-4">
@@ -30,7 +27,7 @@ const LeftSideBarClient = ({ user }: LeftSideBarClientProps) => {
           "flex items-center gap-2 transition-all duration-300",
           isCollapsed ? "justify-center w-full" : ""
         )}>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-xs font-semibold text-white">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold text-white">
             EA
           </div>
           <h2 className={cn(
@@ -60,10 +57,10 @@ const LeftSideBarClient = ({ user }: LeftSideBarClientProps) => {
       {/* Footer */}
       <div className="border-t p-4">
         <div className={cn(
-          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-accent transition-all duration-300",
+          "flex items-center gap-3 rounded-sm px-3 py-2 text-sm hover:bg-accent transition-all duration-300",
           isCollapsed ? "justify-center" : ""
         )}>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-xs font-semibold text-white">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold text-white">
             EA
           </div>
           <div className={cn(

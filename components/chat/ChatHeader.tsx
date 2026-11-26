@@ -18,8 +18,8 @@ export function ChatHeader({ onNewChat, onSettings }: ChatHeaderProps) {
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg">
-          <Sparkles className="w-5 h-5 text-white" />
+        <div className="w-10 h-10 rounded-sm    flex items-center justify-center ">
+          <Sparkles className="w-5 h-5 text-foreground" />
         </div>
         <div>
           <h1 className="font-semibold text-gray-900 dark:text-white">AI Assistant</h1>

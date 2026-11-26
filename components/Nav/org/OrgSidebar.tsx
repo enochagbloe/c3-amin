@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
 import { usePathname, useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -18,29 +17,22 @@ const OrgSidebar = ({ isMobile = false, orgName = "Organization" }: Props) => {
   const pathname = usePathname();
   const params = useParams();
   const orgId = params.id as string;
-  const [isCollapsed, setIsCollapsed] = React.useState(true);
+  const isCollapsed = false;
 
   const access = useOrganizationAccess();
-  const visibleLinks = orgSidebarLinks.filter(
-    (item) =>
-      item.route === "/budget-requests" ||
-      item.route === "/personal-settings" ||
-      (item.route === "/members" || item.route === "/settings"
-        ? access.isOwner
-        : access.canFinance),
-  );
+  const visibleLinks = orgSidebarLinks.filter(item => item.route === '/dashboard' || item.route === '/settings' || access.canFinance);
   const NavContent = (
     <div className="space-y-1">
       {visibleLinks.map((item) => {
         const fullRoute = `/org/${orgId}${item.route}`;
         const isActive =
-          pathname === fullRoute || pathname.startsWith(fullRoute + "/");
+          pathname === fullRoute || pathname.startsWith(fullRoute + "/") || (item.route === "/dashboard" && pathname.startsWith(`/org/${orgId}/budget-requests`));
         const Icon = item.icon;
 
         const linkContent = (
           <div
             className={cn(
-              "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+              "group flex items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium transition-all",
               "hover:bg-accent hover:text-accent-foreground",
               isActive
                 ? "bg-accent text-accent-foreground"
@@ -94,11 +86,9 @@ const OrgSidebar = ({ isMobile = false, orgName = "Organization" }: Props) => {
   return (
     <aside
       className={cn(
-        "sticky left-0 top-0 flex h-screen flex-col border-r bg-background transition-all duration-300 max-sm:hidden",
-        isCollapsed ? "w-16" : "w-64",
+        "sticky left-0 top-0 hidden h-[calc(100svh-4rem)] flex-col border-r lg:flex bg-background transition-all duration-300 max-sm:hidden",
+        isCollapsed ? "w-16" : "w-56",
       )}
-      onMouseEnter={() => setIsCollapsed(false)}
-      onMouseLeave={() => setIsCollapsed(true)}
     >
       {/* Header */}
       <div className="flex h-16 items-center border-b px-4">
@@ -108,8 +98,8 @@ const OrgSidebar = ({ isMobile = false, orgName = "Organization" }: Props) => {
             isCollapsed ? "justify-center w-full" : "",
           )}
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-pink-500">
-            <Building2 className="h-4 w-4 text-white" />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-primary text-primary-foreground">
+            <Building2 className="h-4 w-4 text-primary-foreground" />
           </div>
           <div
             className={cn(
@@ -146,7 +136,7 @@ const OrgSidebar = ({ isMobile = false, orgName = "Organization" }: Props) => {
       <div className="border-t p-4">
         <div
           className={cn(
-            "rounded-lg bg-muted/50 p-3 transition-all duration-300",
+            "rounded-sm bg-muted/50 p-3 transition-all duration-300",
             isCollapsed ? "opacity-0 h-0 overflow-hidden p-0" : "opacity-100",
           )}
         >

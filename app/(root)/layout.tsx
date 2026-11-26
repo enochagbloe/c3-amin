@@ -9,7 +9,7 @@ const layout = async ({ children }: { children: React.ReactNode }) => {
   const session=await auth();
   if(!session?.user?.id)redirect('/sign-in');
   const memberships=await prisma.organizationMember.findMany({where:{userId:session.user.id},select:{organizationId:true,role:true},orderBy:{joinedAt:'asc'}});
-  if(memberships.length && !memberships.some(member=>['OWNER','ADMIN'].includes(member.role)))redirect(`/org/${memberships[0].organizationId}/budget-requests`);
+  if(memberships.length && !memberships.some(member=>['OWNER','ADMIN'].includes(member.role)))redirect(`/org/${memberships[0].organizationId}/dashboard`);
 
   return (
     <main>
@@ -18,8 +18,8 @@ const layout = async ({ children }: { children: React.ReactNode }) => {
         <section className="hidden lg:block">
           <LeftSideBar />
         </section>
-        <section className="flex max-h-screen flex-1 flex-col px-3 pb-3 pt-8 max-md:pb-8 sm:px-6 flex flex-col h-[calc(100vh-80px)] bg-gradient-to-b from-gray-50 to-white dark:from-zinc-900 dark:to-zinc-950">
-          <div className="">{children}</div>
+        <section className="app-content min-w-0 flex-1 px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mx-auto w-full max-w-6xl">{children}</div>
         </section>
       </div>
     </main>

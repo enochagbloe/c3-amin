@@ -1,11 +1,1 @@
-import { organizationPageAccess } from "@/lib/organizations/page-access";
-export default async function Layout({
-  children,
-  params,
-}: {
-  children: React.ReactNode;
-  params: Promise<{ id: string }>;
-}) {
-  await organizationPageAccess((await params).id, true);
-  return children;
-}
+export default function Layout({children}:{children:React.ReactNode}) { return children; }
