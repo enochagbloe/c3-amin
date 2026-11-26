@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import InvitationLink from "./InvitationLink";
 import { budgetApi } from "@/lib/budget-requests/client";
 type Invitation = {
   id: string;
@@ -23,6 +24,7 @@ export default function PendingInvitations({
   const [invitations, setInvitations] = useState<Invitation[]>([]),
     [error, setError] = useState(""),
     [busy, setBusy] = useState("");
+  const [links, setLinks] = useState<Record<string, string>>({});
   const endpoint = `/api/organizations/${organizationId}/invitations`;
   const load = useCallback(async () => {
     try {
@@ -37,21 +39,22 @@ export default function PendingInvitations({
   }, [load, revision]);
   async function action(
     invitation: Invitation,
-    type: "resend" | "revoke" | "delivery",
+    type: "resend" | "revoke" | "delivery" | "link",
   ) {
     setBusy(invitation.id);
     setError("");
     try {
-      await budgetApi(
-        type === "resend" ? endpoint : `${endpoint}/${invitation.id}`,
+      const result = await budgetApi<{ invitationUrl?: string }>(
+        type === "resend" || type === "link" ? endpoint : `${endpoint}/${invitation.id}`,
         {
           method:
-            type === "resend" ? "POST" : type === "revoke" ? "DELETE" : "GET",
-          ...(type === "resend"
-            ? { body: JSON.stringify({ email: invitation.email }) }
+            type === "resend" || type === "link" ? "POST" : type === "revoke" ? "DELETE" : "GET",
+          ...((type === "resend" || type === "link")
+            ? { body: JSON.stringify({ email: invitation.email, delivery: type === "link" ? "link" : "email" }) }
             : {}),
         },
       );
+      setLinks(current => { const next = { ...current }; delete next[invitation.id]; if (result.invitationUrl) next[invitation.id] = result.invitationUrl; return next; });
       await load();
     } catch (error) {
       setError((error as Error).message);
@@ -75,7 +78,7 @@ export default function PendingInvitations({
         )}
         {!invitations.length ? (
           <p className="text-sm text-muted-foreground">
-            Sent invitations and their status will appear here.
+            Invitations and their status will appear here.
           </p>
         ) : (
           invitations.map((invitation) => (
@@ -100,7 +103,7 @@ export default function PendingInvitations({
                         : "secondary"
                     }
                   >
-                    Email: {invitation.emailStatus.toLowerCase()}
+                    {invitation.emailStatus === "NOT_SENT" ? "Link created" : `Email: ${invitation.emailStatus.toLowerCase()}`}
                   </Badge>
                 </div>
                 {invitation.emailError && (
@@ -112,6 +115,7 @@ export default function PendingInvitations({
               <div className="flex flex-wrap gap-2">
                 {invitation.status === "PENDING" && (
                   <>
+                    <Button type="button" variant="outline" size="sm" disabled={Boolean(busy)} onClick={() => action(invitation, "link")}>Create new link</Button>
                     <Button
                       variant="outline"
                       size="sm"
@@ -141,6 +145,7 @@ export default function PendingInvitations({
                   </Button>
                 )}
               </div>
+              {invitation.status === "PENDING" && links[invitation.id] && <div className="w-full"><InvitationLink url={links[invitation.id]} /></div>}
             </div>
           ))
         )}

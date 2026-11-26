@@ -45,7 +45,7 @@ export default function AcceptInvitation({ token }: { token: string }) {
         `/api/invitations/${token}`,
         { method: "POST" },
       );
-      router.push(`/org/${data.organizationId}/budget-requests`);
+      router.push(`/org/${data.organizationId}/dashboard`);
       router.refresh();
     } catch (error) {
       setError((error as Error).message);

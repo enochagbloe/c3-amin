@@ -46,8 +46,9 @@ export async function listInvitations(organizationId: string) {
 }
 export async function sendInvitation(organizationId: string, input: unknown) {
   const owner = await requireOrganizationOwner(organizationId);
-  const { email } = z
+  const { email, delivery } = z
     .object({
+      delivery: z.enum(["email", "link"]).default("email"),
       email: z
         .string()
         .trim()
@@ -56,8 +57,8 @@ export async function sendInvitation(organizationId: string, input: unknown) {
         .transform((value) => value.toLowerCase()),
     })
     .parse(input);
-  const configuration = await emailConfiguration();
-  if (!configuration)
+  const configuration = delivery === "email" ? await emailConfiguration() : null;
+  if (delivery === "email" && !configuration)
     throw new RequestError(
       503,
       "Email invitations are not configured on the server",
@@ -88,7 +89,7 @@ export async function sendInvitation(organizationId: string, input: unknown) {
   )
     throw new RequestError(
       429,
-      "Wait a moment before sending another invitation to this address",
+      "Wait 30 seconds before creating another invitation for this address",
     );
   const token = randomBytes(32).toString("base64url"),
     tokenHash = hash(token);
@@ -101,6 +102,7 @@ export async function sendInvitation(organizationId: string, input: unknown) {
       invitedById: owner.userId,
       tokenHash,
       expiresAt,
+      emailStatus: delivery === "link" ? "NOT_SENT" : "PENDING",
     },
     update: {
       invitedById: owner.userId,
@@ -109,18 +111,24 @@ export async function sendInvitation(organizationId: string, input: unknown) {
       status: "PENDING",
       acceptedAt: null,
       acceptedById: null,
-      emailStatus: "PENDING",
+      emailStatus: delivery === "link" ? "NOT_SENT" : "PENDING",
       emailId: null,
+      lastSentAt: null,
       emailError: null,
     },
   });
+  const invitationUrl = new URL(`/invitations/${token}`, origin).toString();
+  if (delivery === "link") {
+    const safe = await prisma.organizationInvitation.findUniqueOrThrow({ where: { id: invitation.id }, select: safeInvitation });
+    return { ...safe, invitationUrl };
+  }
   try {
     const emailId = await sendInvitationEmail({
-      ...configuration,
+      ...configuration!,
       email,
       organization: owner.organizationName,
       inviter: owner.name,
-      url: new URL(`/invitations/${token}`, origin).toString(),
+      url: invitationUrl,
       deliveryKey: `organization-invite/${invitation.id}/${tokenHash.slice(0, 20)}`,
     });
     await prisma.organizationInvitation.updateMany({
