@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import EmailSettings from "./EmailSettings";
+import { useEffect, useState } from "react";
+import { budgetApi } from "@/lib/budget-requests/client";
 import InvitationForm from "./InvitationForm";
 import PendingInvitations from "./PendingInvitations";
 import TeamMembers from "./TeamMembers";
@@ -11,6 +11,16 @@ export default function TeamPage({
 }) {
   const [configured, setConfigured] = useState(false),
     [revision, setRevision] = useState(0);
+  const [configurationError, setConfigurationError] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    setConfigured(false);
+    setConfigurationError("");
+    budgetApi<{ configured: boolean }>(`/api/organizations/${organizationId}/email-settings`, { signal: controller.signal })
+      .then(result => setConfigured(result.configured))
+      .catch(error => { if (error.name !== "AbortError") setConfigurationError("Unable to check invitation availability. Refresh and try again."); });
+    return () => controller.abort();
+  }, [organizationId]);
   return (
     <main className={embedded ? "space-y-6" : "space-y-6 p-3 sm:p-6"}>
       {!embedded && <div>
@@ -20,7 +30,7 @@ export default function TeamPage({
           organization.
         </p>
       </div>}
-      <EmailSettings organizationId={organizationId} onReady={setConfigured} />
+      {configurationError && <p role="alert" className="text-sm text-destructive">{configurationError}</p>}
       <InvitationForm
         organizationId={organizationId}
         configured={configured}

@@ -56,11 +56,11 @@ export async function sendInvitation(organizationId: string, input: unknown) {
         .transform((value) => value.toLowerCase()),
     })
     .parse(input);
-  const configuration = await emailConfiguration(organizationId);
+  const configuration = await emailConfiguration();
   if (!configuration)
     throw new RequestError(
       503,
-      "Set up email delivery on this team page before inviting members",
+      "Email invitations are not configured on the server",
     );
   const origin = process.env.AUTH_URL;
   if (!origin)
@@ -161,7 +161,7 @@ export async function checkDelivery(organizationId: string, id: string) {
     where: { id, organizationId },
   });
   if (!invitation?.emailId) throw new NotFoundError("Sent invitation");
-  const configuration = await emailConfiguration(organizationId);
+  const configuration = await emailConfiguration();
   if (!configuration)
     throw new RequestError(503, "Email delivery is not configured");
   try {

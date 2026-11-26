@@ -54,20 +54,20 @@ Run workflow tests against an isolated Neon branch and a local server using that
 
 ## Team invitations and member permissions
 
-The organization owner opens **Team** to configure Resend, invite members by email, inspect pending invitations, resend or revoke links, check delivery, and remove members. New invitations always grant the restricted `MEMBER` role after acceptance; requesting a different role in the invitation payload cannot elevate access.
+The organization owner opens **Settings → Team** to invite members by email, inspect pending invitations, resend or revoke links, check delivery, and remove members. New invitations always grant the restricted `MEMBER` role after acceptance; requesting a different role in the invitation payload cannot elevate access.
 
-In **Team → Email delivery**, save a Resend API key and a sender address on a verified Resend domain. The key is encrypted with AES-256-GCM in a separate settings table, using `MAIL_ENCRYPTION_KEY` when present and otherwise the stable application `AUTH_SECRET`. The key is never returned to the browser. `RESEND_API_KEY` and `RESEND_FROM_EMAIL` can alternatively supply app-wide defaults. No real key is committed. Sending is disabled until configuration is saved. `SENT` means Resend accepted the email; **Check delivery** retrieves the provider’s latest delivery event (the key needs email read permission for that optional check).
+Configure Resend on the server, never in the UI. Add `RESEND_API_KEY` and `RESEND_FROM_EMAIL` to your gitignored `.env` for local development and to the Render service environment for production, then restart/redeploy. The sender must be an email address on your verified Resend domain. See `.env.example` for placeholders. Keys are server-only and are never returned by the API. Existing database email settings are no longer used, and the API no longer accepts key updates. `SENT` means Resend accepted the email; **Check delivery** retrieves the latest provider event (requires email read permission).
 
 Invitation links expire after seven days, store only a token hash, and must be accepted while signed in with the invited email. Opening the link never consumes it. Reissuing an invitation invalidates the previous link, and revocation immediately prevents acceptance. Existing accounts sign in; new users sign up and return to the invitation. Membership is not granted just because an email was sent.
 
 | Organization role | Available access |
 | --- | --- |
-| Owner | Team and email setup, approval assignments, all budget requests, organization finance and settings |
+| Owner | Team management, approval assignments, all budget requests, organization finance and settings |
 | Admin | Organization finance and their permitted budget requests; no team or email setup |
 | Member / Viewer | Personal settings and their own budget requests |
 | Assigned reviewer / pastor | Adds assigned budget visibility and the applicable approval stage; does not grant finance access |
 
-Members are redirected to budget requests on normal sign-in and cannot access the old finance navigation through the personal workspace. Organization finance pages, income/expense endpoints, financial AI, organization detail data, roster access, and financial server actions enforce permissions independently of the navigation. Workspace listings omit financial records for restricted members. Personal finance queries are scoped to their author and never include organization records. Profile updates cannot change email, role, or status through the personal settings API.
+Members are redirected to their organization dashboard on normal sign-in and cannot access the old finance navigation through the personal workspace. Organization finance pages, income/expense endpoints, financial AI, organization detail data, roster access, and financial server actions enforce permissions independently of the navigation. Workspace listings omit financial records for restricted members. Personal finance queries are scoped to their author and never include organization records. Profile updates cannot change email, role, or status through the personal settings API.
 
 The invitation/permission integration test is `scripts/team-smoke.cjs`. Run it only against an isolated database and a local server configured with an explicit test-only Resend adapter. Its Resend responses are simulated and no real email is sent. The production app always calls Resend’s fixed HTTPS API.
 

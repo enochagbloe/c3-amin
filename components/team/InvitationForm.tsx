@@ -39,7 +39,7 @@ export default function InvitationForm({
       if (data.emailStatus === "FAILED")
         setError(
           data.emailError ??
-            "Email could not be sent. Check your email settings and try again.",
+            "Email could not be sent. Try again or contact the application administrator.",
         );
       else {
         toast.success("Invitation sent");
@@ -87,7 +87,7 @@ export default function InvitationForm({
           </p>
           {!configured && (
             <p className="text-sm text-muted-foreground">
-              Save email delivery settings above to enable invitations.
+              Email invitations are currently unavailable. Contact the application administrator.
             </p>
           )}
           {error && (

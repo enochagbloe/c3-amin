@@ -41,12 +41,12 @@ function deliveredToken(email) {
   const expense = await db.expenseTracker.create({ data: { name: 'Private church expense', amount: 123, author: users[0].id, organizationId: org.id } });
   const [owner, invited, other, pastor] = await Promise.all(users.map(actor));
   const root = `/api/organizations/${org.id}`, invites = root + '/invitations', settings = root + '/email-settings';
-  assert.equal((await owner(invites, 'POST', { email: users[1].email })).code, 503, 'Missing Resend setup must not pretend to send');
-  assert.equal((await other(settings, 'PUT', { fromEmail: 'team@example.invalid', apiKey: 're_test_0123456789' })).code, 403);
-  const saved = await owner(settings, 'PUT', { fromEmail: 'team@example.invalid', apiKey: 're_test_0123456789' }); assert.equal(saved.code, 200); assert.equal(saved.data.configured, true);
-  assert(!JSON.stringify(saved).includes('re_test_0123456789'));
-  const stored = await db.organizationEmailSettings.findUniqueOrThrow({ where: { organizationId: org.id } }); assert(!stored.apiKeyEncrypted.includes('re_test_0123456789'));
-  assert.equal((await owner(settings, 'PUT', { fromEmail: 'updated@example.invalid' })).code, 200, 'Sender update must preserve the encrypted API key');
+  const availability = await owner(settings);
+  assert.equal(availability.code, 200);
+  assert.equal(availability.data.configured, true, 'Test server must use server environment credentials');
+  assert.deepEqual(Object.keys(availability.data), ['configured'], 'Never expose server credentials');
+  assert.equal((await other(settings)).code, 403);
+  assert.equal((await owner(settings, 'PUT', { fromEmail: 'forged@example.invalid', apiKey: 're_forged_0123456789' })).code, 405, 'UI and API clients cannot replace credentials');
   const sent = await owner(invites, 'POST', { email: users[1].email, role: 'ADMIN' }); assert.equal(sent.code, 201, JSON.stringify(sent)); assert.equal(sent.data.emailStatus, 'SENT');
   assert(!('tokenHash' in sent.data)); assert(!('token' in sent.data));
   assert.equal(await db.organizationMember.count({ where: { userId: users[1].id, organizationId: org.id } }), 0, 'Sending email must not grant membership');
@@ -86,7 +86,7 @@ function deliveredToken(email) {
   assert.equal((await owner('/api/invitations/' + oldToken)).data.expired, true);
   await owner(invites, 'POST', { email: expiryEmail }); const nextToken = deliveredToken(expiryEmail); assert.notEqual(oldToken, nextToken); assert.equal((await owner('/api/invitations/' + oldToken)).code, 404);
   assert.equal((await owner(`${invites}/${expiry.id}`, 'DELETE')).code, 200); assert.equal((await owner('/api/invitations/' + nextToken)).data.status, 'REVOKED');
-  console.log('PASS: Resend payload and delivery, encrypted settings, accepted-email binding, single-use membership, restricted tabs and finance APIs, own-only budgets, assigned-only approval, failed sends, expired links, rotation and revocation. No real email was sent.');
+  console.log('PASS: Resend payload and delivery, server-only settings, accepted-email binding, single-use membership, restricted tabs and finance APIs, own-only budgets, assigned-only approval, failed sends, expired links, rotation and revocation. No real email was sent.');
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {
   await db.organization.deleteMany({ where: { id: { in: orgs } } }); await db.user.deleteMany({ where: { id: { in: users.map(user => user.id) } } }); await db.$disconnect();
 });
