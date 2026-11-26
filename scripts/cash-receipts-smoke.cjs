@@ -42,6 +42,8 @@ async function actor(user) {
  assert.equal((await head(notifications)).data.unread,1);
  assert.equal((await head(decision,'POST',{decision:'APPROVED'})).data.status,'APPROVED');
  assert.equal((await reviewer(summary)).data.cashCount,1);
+ const requesterMembership=await db.organizationMember.findUniqueOrThrow({where:{userId_organizationId:{userId:users[3].id,organizationId:org.id}}});
+ assert.equal((await owner(root+'/members/'+requesterMembership.id,'DELETE')).code,400,'Requesters with unsettled cash must remain members until confirmation');
  assert.equal(await db.expenseTracker.count({where:{organizationId:org.id}}),0,'Approval alone must never add an expense');
  assert.equal((await owner(cash,'POST',{action:'RECEIVE_FUNDS'})).code,403,'Owner cannot bypass assigned cash reviewer');
  assert.equal((await reviewer(cash,'POST',{action:'HAND_OVER'})).code,409);

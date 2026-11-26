@@ -474,6 +474,8 @@ export async function removeOrganizationMember(
 
     const assignedOrganization = await prisma.organization.findFirst({ where: { id: member.organizationId, OR: [{ budgetReviewerId: member.userId }, { budgetPastorId: member.userId }] } });
     const pendingAssignment = await prisma.budgetRequest.findFirst({ where: { organizationId: member.organizationId, status: { in: ['PENDING_MAIN', 'PENDING_SECOND'] }, OR: [{ mainApproverId: member.userId }, { secondApproverId: member.userId }] } });
+    const pendingCash = await prisma.budgetRequest.findFirst({ where: { organizationId: member.organizationId, status: 'APPROVED', cashStatus: { not: 'RECEIVED' }, OR: [{ mainApproverId: member.userId }, { requesterId: member.userId }] }, select: { id: true } });
+    if (pendingCash) throw new ForbiddenError('Complete this member’s cash handovers and receipt confirmations before removing them');
     if (assignedOrganization || pendingAssignment) throw new Error('Assign another budget reviewer or pastor before removing this member');
     await prisma.organizationMember.delete({
       where: { id: memberId },
