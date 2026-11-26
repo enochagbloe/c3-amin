@@ -103,16 +103,16 @@ export default function RequestDetail({
                   )}
                 </CardContent>
               </Card>
-              {currentApprover === userId && request.requesterId !== userId && (
+              {currentApprover === userId && (request.status === "PENDING_MAIN" || request.requesterId !== userId) && (
                 <DecisionForm
                   organizationId={organizationId}
                   request={request}
                   onDecision={setRequest}
                 />
               )}
-              {currentApprover === userId && request.requesterId === userId && (
+              {currentApprover === userId && request.status === "PENDING_SECOND" && request.requesterId === userId && (
                 <p className="rounded-lg border p-4 text-sm">
-                  You cannot approve your own request. The organization owner
+                  You cannot give final approval to your own request. The organization owner
                   must assign another approver for this stage in budget approval
                   settings.
                 </p>

@@ -49,7 +49,7 @@ async function actor(user) {
     fixtures.users.push(user);
   }
   const [ownerUser, adminAUser, adminBUser, reviewerUser, pastorUser, outsiderUser] = fixtures.users;
-  const org = await db.organization.create({ data: { name: 'Budget workflow test', industry: 'CHURCH', members: { create: fixtures.users.slice(0, 5).map(user => ({ userId: user.id, role: user.id === ownerUser.id ? 'OWNER' : user.id === pastorUser.id ? 'MEMBER' : 'ADMIN' })) } } });
+  const org = await db.organization.create({ data: { name: 'Budget workflow test', industry: 'CHURCH', members: { create: fixtures.users.slice(0, 5).map(user => ({ userId: user.id, role: user.id === ownerUser.id ? 'OWNER' : (user.id === pastorUser.id || user.id === reviewerUser.id) ? 'MEMBER' : 'ADMIN' })) } } });
   fixtures.organizations.push(org.id);
   const otherOrg = await db.organization.create({ data: { name: 'Other church test', industry: 'CHURCH', members: { create: { userId: outsiderUser.id, role: 'OWNER' } } } });
   fixtures.organizations.push(otherOrg.id);
@@ -67,7 +67,8 @@ async function actor(user) {
   assert.equal(queued.data.mainApproverId, outsiderUser.id);
   assert.equal(queued.data.secondApproverId, null);
   assert.equal(queued.data.status, 'PENDING_MAIN');
-  assert.equal((await outsider(`${unconfiguredEndpoint}/${queued.data.id}/decision`, 'POST', { decision: 'APPROVED' })).status, 403, 'Queuing must never enable self approval');
+  assert.equal((await outsider(`${unconfiguredEndpoint}/${queued.data.id}/decision`, 'POST', { decision: 'APPROVED' })).data.status, 'PENDING_SECOND', 'Owner acting as reviewer may forward own request but cannot finalize it');
+  assert.equal((await outsider(`${unconfiguredEndpoint}/${queued.data.id}/decision`, 'POST', { decision: 'APPROVED' })).status, 403);
   assert.equal((await adminA(settings, 'PUT', route)).status, 403, 'Admins cannot assign approvers');
   assert.equal((await owner(settings, 'PUT', { reviewerId: reviewerUser.id, pastorId: reviewerUser.id })).status, 400);
   assert.equal((await owner(settings, 'PUT', { ...route, pastorId: outsiderUser.id })).status, 400);
@@ -114,16 +115,22 @@ async function actor(user) {
   await reviewer(decision(finalRejection.id), 'POST', { decision: 'APPROVED' });
   assert.equal((await pastor(decision(finalRejection.id), 'POST', { decision: 'REJECTED', comment: 'Not in this term’s budget.' })).data.status, 'REJECTED');
   const own = (await reviewer(endpoint, 'POST', body)).data;
-  assert.equal((await reviewer(decision(own.id), 'POST', { decision: 'APPROVED' })).status, 403, 'No self approval');
+  assert.equal((await reviewer(decision(own.id), 'POST', { decision: 'APPROVED' })).data.status, 'PENDING_SECOND', 'Assigned reviewer may first-approve their own request');
+  assert.equal((await reviewer(decision(own.id), 'POST', { decision: 'APPROVED' })).status, 403, 'Reviewer cannot finalize');
+  assert.equal((await pastor(decision(own.id), 'POST', { decision: 'APPROVED' })).data.status, 'APPROVED');
+  const pastorOwn = (await pastor(endpoint, 'POST', body)).data;
+  assert.equal((await reviewer(decision(pastorOwn.id), 'POST', { decision: 'APPROVED' })).data.status, 'PENDING_SECOND');
+  assert.equal((await pastor(decision(pastorOwn.id), 'POST', { decision: 'APPROVED' })).status, 403, 'Final approver must not approve own request');
+  const pendingOwn = (await reviewer(endpoint, 'POST', body)).data;
   assert.equal((await owner(settings, 'PUT', { reviewerId: ownerUser.id, pastorId: pastorUser.id })).status, 200);
-  const rerouted = (await owner(`${endpoint}/${own.id}`)).data;
+  const rerouted = (await owner(`${endpoint}/${pendingOwn.id}`)).data;
   assert.equal(rerouted.mainApproverId, ownerUser.id);
   assert(rerouted.events.some(event => event.action === 'REASSIGNED'));
-  assert.equal((await owner(decision(own.id), 'POST', { decision: 'APPROVED' })).data.status, 'PENDING_SECOND');
-  assert.equal((await pastor(decision(own.id), 'POST', { decision: 'APPROVED' })).data.status, 'APPROVED');
+  assert.equal((await owner(decision(pendingOwn.id), 'POST', { decision: 'APPROVED' })).data.status, 'PENDING_SECOND');
+  assert.equal((await pastor(decision(pendingOwn.id), 'POST', { decision: 'APPROVED' })).data.status, 'APPROVED');
   assert.equal((await adminA(endpoint + '?scope=mine')).data.total, 2, 'Members retain their full request history');
   assert.equal(await db.expenseTracker.count({ where: { organizationId: org.id } }), 0, 'Private requests must not leak into shared expense tables');
-  console.log('PASS: owner-only routing; automatic assignment; admin privacy; cross-organization denial; sequential reviewer/pastor approval; concurrent decisions; rejection reasons; immutable final decisions; self-approval prevention; owner reassignment and audit history.');
+  console.log('PASS: owner-only routing; automatic assignment; admin privacy; cross-organization denial; sequential reviewer/pastor approval; concurrent decisions; rejection reasons; immutable final decisions; reviewer first approval on own requests; final self-approval prevention; owner reassignment and audit history.');
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {
   await db.organization.deleteMany({ where: { id: { in: fixtures.organizations } } });
   await db.user.deleteMany({ where: { id: { in: fixtures.users.map(user => user.id) } } });

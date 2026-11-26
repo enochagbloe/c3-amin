@@ -130,9 +130,7 @@ export default function ApprovalSettings({
               <p className="text-sm text-muted-foreground">
                 Requests go to the reviewer first, then to the pastor for the
                 final go-ahead. Changes reroute unfinished stages; recorded
-                decisions stay in history. Nobody can approve their own request.
-                If an assigned approver submits one, assign another person here
-                for that stage.
+                decisions stay in history. Any active organization member can be the reviewer; the owner can change this assignment. The assigned reviewer may give first approval to their own request, but a different person must give final approval. A pastor cannot give final approval to their own request.
               </p>
               <Button
                 onClick={save}

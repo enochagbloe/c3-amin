@@ -41,7 +41,7 @@ The organization owner sets the **Budget approval settings** on the organization
 
 Requests progress from `PENDING_MAIN` to `PENDING_SECOND` to `APPROVED`. Either approver can reject at their own stage with a reason. Final decisions cannot be changed. The requester, organization owner, and assigned approvers can read the request and its decision history; other members, including unassigned admins, cannot. Requests are kept separate from shared expense tables. Approval authorizes the budget; it does not record a payment or expenditure.
 
-Approvers work from **Needs my approval**; the pastor receives the request there only after the first approval. **Oversight** shows everything the current user may see, and **My requests** preserves the member’s request history. Nobody can approve their own request. The owner can assign another approver in settings if necessary. Settings changes reroute unfinished stages and add an audit event, preserving completed decisions.
+Approvers work from **Needs my approval**; the pastor receives the request there only after the first approval. **Oversight** shows everything the current user may see, and **My requests** preserves the member’s request history. An assigned reviewer may give first approval to their own request; final approval must come from a different person and cannot be given by the requester. The owner can assign another approver in settings if necessary. Settings changes reroute unfinished stages and add an audit event, preserving completed decisions.
 
 Endpoints (authenticated organization membership required):
 
@@ -81,3 +81,5 @@ node --env-file=.env.budget-test --require ./scripts/testing/resend-preload.cjs 
 ```
 
 In another terminal, set the same `TEAM_TEST_OUTBOX` path and run `node --env-file=.env.budget-test scripts/team-smoke.cjs`. The preloader only runs when explicitly supplied to Node; production startup does not load it. It intercepts Resend calls for isolated tests and captures test email payloads locally.
+
+The owner may assign any active organization member as reviewer and change that assignment in Settings → Organization. Assigned reviewers may first-approve their own requests and forward them to the final pastor. Final self-approval remains forbidden.

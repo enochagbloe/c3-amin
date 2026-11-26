@@ -137,7 +137,7 @@ export async function decideRequest(
       const approverId =
         stage === "MAIN" ? request.mainApproverId : request.secondApproverId;
       if (
-        context.userId === request.requesterId ||
+        (stage === "SECOND" && context.userId === request.requesterId) ||
         context.userId !== approverId
       ) {
         throw new ForbiddenError(
