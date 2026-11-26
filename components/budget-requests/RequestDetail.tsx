@@ -133,7 +133,7 @@ export default function RequestDetail({
                 <div>
                   <p className="font-medium">2. Pastor · final go-ahead</p>
                   <p className="text-muted-foreground">
-                    {request.secondApprover.name}
+                    {request.secondApprover?.name ?? "Awaiting owner assignment"}
                   </p>
                 </div>
                 <p className="border-t pt-4 text-muted-foreground">

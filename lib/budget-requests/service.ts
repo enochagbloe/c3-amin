@@ -66,14 +66,13 @@ export async function createRequest(context: RequestContext, input: unknown) {
       const secondApproverId = organization.budgetPastorId;
       if (
         !mainApproverId ||
-        !secondApproverId ||
         mainApproverId === secondApproverId
       )
         throw new RequestError(
           400,
-          "The organization owner must configure a reviewer and final pastor in Budget approval settings first",
+          "The organization needs an owner or designated reviewer to receive requests",
         );
-      const approverIds = [mainApproverId, secondApproverId];
+      const approverIds = [mainApproverId, secondApproverId].filter((id): id is string => Boolean(id));
       const [members, users] = await Promise.all([
         tx.organizationMember.count({
           where: {
@@ -83,10 +82,10 @@ export async function createRequest(context: RequestContext, input: unknown) {
         }),
         tx.user.count({ where: { id: { in: approverIds }, status: "active" } }),
       ]);
-      if (members !== 2 || users !== 2)
+      if (members !== approverIds.length || users !== approverIds.length)
         throw new RequestError(
           400,
-          "Both approvers must be active members of this organization",
+          "Assigned approvers must be active members of this organization",
         );
       return tx.budgetRequest.create({
         data: {

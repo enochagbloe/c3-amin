@@ -205,8 +205,8 @@ model BudgetRequest {
   requester        User                 @relation("BudgetRequester", fields: [requesterId], references: [id], onDelete: Restrict)
   mainApproverId   String
   mainApprover     User                 @relation("MainBudgetApprover", fields: [mainApproverId], references: [id], onDelete: Restrict)
-  secondApproverId String
-  secondApprover   User                 @relation("SecondBudgetApprover", fields: [secondApproverId], references: [id], onDelete: Restrict)
+  secondApproverId String?
+  secondApprover   User?                @relation("SecondBudgetApprover", fields: [secondApproverId], references: [id], onDelete: Restrict)
   title            String
   description      String
   amount           Decimal              @db.Decimal(14, 2)

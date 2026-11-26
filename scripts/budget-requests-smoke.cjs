@@ -61,7 +61,13 @@ async function actor(user) {
   const decision = id => `${endpoint}/${id}/decision`;
 
   assert.equal((await (await fetch(base + endpoint)).json()).success, false);
-  assert.equal((await adminA(endpoint, 'POST', body)).status, 400, 'Requests need a configured final pastor');
+  const unconfiguredEndpoint = `/api/organizations/${otherOrg.id}/budget-requests`;
+  const queued = await outsider(unconfiguredEndpoint, 'POST', body);
+  assert.equal(queued.status, 201, 'An owner-only church must be able to submit before pastor setup');
+  assert.equal(queued.data.mainApproverId, outsiderUser.id);
+  assert.equal(queued.data.secondApproverId, null);
+  assert.equal(queued.data.status, 'PENDING_MAIN');
+  assert.equal((await outsider(`${unconfiguredEndpoint}/${queued.data.id}/decision`, 'POST', { decision: 'APPROVED' })).status, 403, 'Queuing must never enable self approval');
   assert.equal((await adminA(settings, 'PUT', route)).status, 403, 'Admins cannot assign approvers');
   assert.equal((await owner(settings, 'PUT', { reviewerId: reviewerUser.id, pastorId: reviewerUser.id })).status, 400);
   assert.equal((await owner(settings, 'PUT', { ...route, pastorId: outsiderUser.id })).status, 400);

@@ -79,7 +79,7 @@ export default function RequestForm({
       setSaving(false);
     }
   }
-  const ready = Boolean(options?.reviewer && options.pastor);
+  const ready = Boolean(options?.reviewer);
   return (
     <Card className="max-w-3xl">
       <CardHeader>
@@ -102,20 +102,20 @@ export default function RequestForm({
                 ? `${options.reviewer?.name ?? "Reviewer not assigned"} → ${options.pastor?.name ?? "Final pastor not assigned"}`
                 : "Loading…"}
             </p>
-            {options && !ready && (
+            {options && !options.pastor && (
               <p className="mt-2">
-                The owner needs to assign both approvers in{" "}
+                You can submit now. The owner must assign a final pastor in{" "}
                 {options.isOwner ? (
                   <Link
                     className="underline"
-                    href={`/org/${organizationId}/settings`}
+                    href={`/org/${organizationId}/settings?tab=organization`}
                   >
                     organization settings
                   </Link>
                 ) : (
                   "organization settings"
                 )}{" "}
-                before you can submit.
+                before final approval.
               </p>
             )}
           </div>

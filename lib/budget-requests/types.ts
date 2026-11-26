@@ -9,14 +9,14 @@ export type BudgetRequest = {
   currency: string;
   requesterId: string;
   mainApproverId: string;
-  secondApproverId: string;
+  secondApproverId: string | null;
   status: RequestStatus;
   neededBy: string | null;
   createdAt: string;
   updatedAt: string;
   requester: Person;
   mainApprover: Person;
-  secondApprover: Person;
+  secondApprover: Person | null;
   events: {
     id: string;
     actor: Person;
