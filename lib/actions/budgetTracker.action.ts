@@ -168,6 +168,7 @@ export async function updateExpenseStatus(
       }
     }
 
+    if (existingExpense.budgetRequestId) throw new ForbiddenError("Confirmed budget expenses cannot be changed outside the cash receipt workflow");
     const updatedExpense = await prisma.expenseTracker.update({
       where: { id },
       data: { status: status as Status },
@@ -230,6 +231,7 @@ export async function deleteExpense(
       }
     }
 
+    if (existingExpense.budgetRequestId) throw new ForbiddenError("Confirmed budget expenses are part of the receipt audit history and cannot be deleted");
     const deletedExpense = await prisma.expenseTracker.delete({
       where: { id: expensesId },
     });

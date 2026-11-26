@@ -72,6 +72,7 @@ export default function RequestForm({
         { method: "POST", body: JSON.stringify(parsed.data) },
       );
       toast.success("Budget request sent to your designated reviewer");
+      window.dispatchEvent(new Event("budget-activity"));
       router.push(`/org/${organizationId}/budget-requests/${request.id}`);
     } catch (error) {
       setError((error as Error).message);

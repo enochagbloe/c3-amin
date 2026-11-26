@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { budgetApi, budgetEndpoint } from "@/lib/budget-requests/client";
-import { budgetAmount, type BudgetRequest } from "@/lib/budget-requests/types";
+import { budgetAmount, cashLabels, type BudgetRequest } from "@/lib/budget-requests/types";
 import RequestStatus from "./RequestStatus";
 import { useOrganizationAccess } from "@/components/organizations/OrganizationAccessProvider";
 
@@ -96,6 +96,7 @@ export default function RequestsList({
       >
         <TabsList className="flex h-auto w-fit flex-wrap">
           <TabsTrigger value="mine">My requests</TabsTrigger>
+          <TabsTrigger value="payments">Cash tracking</TabsTrigger>
           {access.canReviewBudgets && (
             <TabsTrigger value="inbox">Needs my approval</TabsTrigger>
           )}
@@ -105,7 +106,7 @@ export default function RequestsList({
         </TabsList>
       </Tabs>
       <p className="text-sm text-muted-foreground">
-        {scope === "all"
+        {scope === "payments" ? "Approved budgets and their cash receipt status. Expenses are recorded only after the requester confirms receipt." : scope === "all"
           ? "Owners see all organization requests. Approvers see only requests assigned to them; other members see only their own."
           : scope === "inbox"
             ? "Only requests awaiting your decision at the current approval stage appear here."
@@ -184,6 +185,7 @@ export default function RequestsList({
                         </td>
                         <td className="p-3">
                           <RequestStatus status={request.status} />
+                          {request.status === "APPROVED" && <p className="mt-1 text-xs text-muted-foreground">{cashLabels[request.cashStatus]}</p>}
                         </td>
                         <td className="whitespace-nowrap p-3">
                           {new Date(request.createdAt).toLocaleDateString()}

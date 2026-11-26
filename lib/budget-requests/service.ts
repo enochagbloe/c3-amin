@@ -1,3 +1,4 @@
+import { notifyBudget } from "./notifications";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@/lib/generated/prisma";
 import { ForbiddenError, NotFoundError, RequestError } from "@/lib/http.error";
@@ -6,7 +7,7 @@ import { requestSchema, decisionSchema, listSchema } from "./validation";
 import { z } from "zod";
 
 const person = { id: true, name: true };
-const include = {
+export const requestInclude = {
   requester: { select: person },
   mainApprover: { select: person },
   secondApprover: { select: person },
@@ -28,12 +29,12 @@ export async function listRequests(context: RequestContext, input: unknown) {
               { secondApproverId: context.userId, status: "PENDING_SECOND" },
             ],
           }
-        : {};
+        : scope === "payments" ? { status: "APPROVED" } : {};
   const where = { AND: [visibility(context), filter] };
   const [requests, total] = await prisma.$transaction([
     prisma.budgetRequest.findMany({
       where,
-      include,
+      include: requestInclude,
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       skip: (page - 1) * 20,
       take: 20,
@@ -47,7 +48,7 @@ export async function getRequest(context: RequestContext, requestId: string) {
   z.string().uuid().parse(requestId);
   const request = await prisma.budgetRequest.findFirst({
     where: { AND: [visibility(context), { id: requestId }] },
-    include,
+    include: requestInclude,
   });
   if (!request) throw new NotFoundError("Budget request");
   return request;
@@ -87,7 +88,7 @@ export async function createRequest(context: RequestContext, input: unknown) {
           400,
           "Assigned approvers must be active members of this organization",
         );
-      return tx.budgetRequest.create({
+      const created = await tx.budgetRequest.create({
         data: {
           ...data,
           amount: new Prisma.Decimal(data.amount),
@@ -106,8 +107,10 @@ export async function createRequest(context: RequestContext, input: unknown) {
             },
           },
         },
-        include,
+        include: requestInclude,
       });
+      await notifyBudget(tx, { organizationId: context.organizationId, requestId: created.id, actorId: context.userId, recipients: [mainApproverId], title: "Budget request needs your review", message: created.title });
+      return created;
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 10000, timeout: 30000 },
   );
@@ -173,9 +176,12 @@ export async function decideRequest(
           comment: data.comment || null,
         },
       });
+      await notifyBudget(tx, { organizationId: context.organizationId, requestId, actorId: context.userId,
+        recipients: [request.requesterId, ...(status === "PENDING_SECOND" ? [request.secondApproverId] : status === "APPROVED" ? [request.mainApproverId] : [])],
+        title: status === "REJECTED" ? "Budget request rejected" : status === "APPROVED" ? "Budget approved · cash collection pending" : "First approval recorded · awaiting final approval", message: request.title });
       return tx.budgetRequest.findUniqueOrThrow({
         where: { id: requestId },
-        include,
+        include: requestInclude,
       });
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 10000, timeout: 30000 },

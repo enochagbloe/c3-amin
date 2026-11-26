@@ -83,3 +83,18 @@ node --env-file=.env.budget-test --require ./scripts/testing/resend-preload.cjs 
 In another terminal, set the same `TEAM_TEST_OUTBOX` path and run `node --env-file=.env.budget-test scripts/team-smoke.cjs`. The preloader only runs when explicitly supplied to Node; production startup does not load it. It intercepts Resend calls for isolated tests and captures test email payloads locally.
 
 The owner may assign any active organization member as reviewer and change that assignment in Settings → Organization. Assigned reviewers may first-approve their own requests and forward them to the final pastor. Final self-approval remains forbidden.
+
+## Cash handover and confirmed expenses
+
+Final approval does not create an expense. The request retains its approval status and has a separate cash status:
+
+1. `NOT_RELEASED`: the assigned reviewer records collecting the full approved amount, optionally adding a voucher/reference.
+2. `WITH_REVIEWER`: the same assigned reviewer records handing the cash to the requester.
+3. `AWAITING_RECEIPT`: only the requester can confirm receiving the full amount.
+4. `RECEIVED`: one approved organization expense is recorded for the organization owner, with the approved amount, currency and confirmation date.
+
+`POST /api/organizations/:id/budget-requests/:requestId/cash` accepts `{ action: "RECEIVE_FUNDS" | "HAND_OVER" | "CONFIRM_RECEIPT", reference?: string }`. Amounts and recipients cannot be supplied by clients. All transitions require final approval and are audited with actor and server timestamp. Receipt confirmation and expense creation run in one serializable transaction, protected by a unique budget-to-expense link. Retrying confirmation is idempotent. Confirmed budget expenses cannot be deleted or have their status changed through ordinary expense actions. Cash handling remains with the request's assigned reviewer after approval; changing organization approval settings changes only unfinished approval stages.
+
+Dashboard activity and the notification bell refresh every 30 seconds and on focus. `GET /api/organizations/:id/budget-requests/summary` returns only visible request totals, current tasks and recent decisions. `GET/PATCH /api/organizations/:id/notifications` lists and marks only the current member's visible notifications. New request, approval, reassignment and cash events notify the relevant participants in-app. No new email delivery or cash transfer is initiated by these features. Notifications do not reveal requests after the recipient loses access.
+
+Run `node --env-file=.env.budget-test scripts/cash-receipts-smoke.cjs` against the matching isolated local server. It covers permissions, ordering, private notifications, no expense before requester confirmation, currency, and duplicate/concurrent confirmations. Existing expense currencies default to USD; newly confirmed requests keep their explicitly selected currency and expense totals display separate currency groups.

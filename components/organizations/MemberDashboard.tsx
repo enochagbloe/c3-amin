@@ -1,3 +1,4 @@
+import BudgetOverview from '@/components/budget-requests/BudgetOverview';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,5 +10,6 @@ export default function MemberDashboard({ organizationId, canReview }: { organiz
       <Card><CardHeader><CardTitle>My request history</CardTitle><CardDescription>See your requests and whether they are pending, approved or rejected.</CardDescription></CardHeader><CardContent><Button asChild variant="outline"><Link href={base}>View my requests</Link></Button></CardContent></Card>
       {canReview && <Card><CardHeader><CardTitle>Assigned approvals</CardTitle><CardDescription>Review only budgets assigned to you.</CardDescription></CardHeader><CardContent><Button asChild variant="outline"><Link href={base}>Review assigned requests</Link></Button></CardContent></Card>}
     </div>
+    <BudgetOverview organizationId={organizationId} />
   </main>;
 }

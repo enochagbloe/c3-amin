@@ -7,6 +7,8 @@ export type Payment = {
   id: string;
   name: string;
   amount: string;
+  currency?: string;
+  budgetRequestId?: string | null;
   status: "pending" | "approved" | "rejected";
   date: string;
   description: string;
@@ -25,9 +27,9 @@ export const columns: ColumnDef<Payment>[] = [
       const amount = parseFloat(row.getValue("amount"));
       const formatted = new Intl.NumberFormat("en-US", {
         style: "currency",
-        currency: "USD",
+        currency: row.original.currency || "USD",
       }).format(amount);
-      return <div className="font-medium">{formatted}</div>;
+      return <div className="font-medium">{formatted}{row.original.budgetRequestId && <p className="mt-1 text-xs font-normal text-muted-foreground">Cash receipt confirmed</p>}</div>;
     },
   },
   {

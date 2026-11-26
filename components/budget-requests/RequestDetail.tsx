@@ -9,6 +9,7 @@ import { budgetApi, budgetEndpoint } from "@/lib/budget-requests/client";
 import { budgetAmount, type BudgetRequest } from "@/lib/budget-requests/types";
 import RequestStatus from "./RequestStatus";
 import RequestHistory from "./RequestHistory";
+import CashReceipt from "./CashReceipt";
 import DecisionForm from "./DecisionForm";
 
 export default function RequestDetail({
@@ -117,6 +118,7 @@ export default function RequestDetail({
                   settings.
                 </p>
               )}
+              {request.status === "APPROVED" && <CashReceipt request={request} userId={userId} organizationId={organizationId} onChange={setRequest} />}
               <RequestHistory request={request} />
             </div>
             <Card className="h-fit">

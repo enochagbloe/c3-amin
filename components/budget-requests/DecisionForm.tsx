@@ -40,6 +40,7 @@ export default function DecisionForm({
         { method: "POST", body: JSON.stringify({ decision, comment }) },
       );
       onDecision(updated);
+      window.dispatchEvent(new Event("budget-activity"));
       setComment("");
       toast.success(
         decision === "REJECTED"

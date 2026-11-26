@@ -1,4 +1,6 @@
 "use client";
+import BudgetOverview from "@/components/budget-requests/BudgetOverview";
+import { expenseTotals } from "@/lib/budget-requests/expense-totals";
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getOrganization } from "@/lib/actions/org/organization.actions";
@@ -22,6 +24,7 @@ type Organization = {
     expenses: Array<{
         id: string;
         amount: number;
+        currency?: string;
         status: string;
     }>;
 };
@@ -65,7 +68,7 @@ const OrgDashboardPage = () => {
         </div>
       </div>);
     }
-    const totalExpenses = organization.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const totalExpenses = expenseTotals(organization.expenses);
     const pendingExpenses = organization.expenses.filter((exp) => exp.status === "pending").length;
     const approvedExpenses = organization.expenses.filter((exp) => exp.status === "approved").length;
     return (
@@ -92,6 +95,7 @@ const OrgDashboardPage = () => {
         <p className="text-muted-foreground mt-1">Organization Dashboard</p>
       </div>
 
+      <BudgetOverview organizationId={orgId} />
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
@@ -117,7 +121,7 @@ const OrgDashboardPage = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground"/>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalExpenses.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{totalExpenses}</div>
             <p className="text-xs text-muted-foreground mt-1">
               All time expenses
             </p>

@@ -17,7 +17,7 @@ export default function RequestHistory({
             <li key={event.id} className="relative">
               <span className="absolute -left-[25px] top-1.5 h-2 w-2 rounded-full bg-primary" />
               <p className="font-medium">
-                {event.action === "SUBMITTED"
+                {event.action === "FUNDS_RECEIVED" ? "Reviewer collected cash" : event.action === "CASH_HANDED_OVER" ? "Reviewer handed cash to requester" : event.action === "RECEIPT_CONFIRMED" ? "Requester confirmed receipt · expense recorded" : event.action === "SUBMITTED"
                   ? "Request submitted"
                   : event.action === "REASSIGNED"
                     ? "Approval route updated by owner"

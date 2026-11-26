@@ -1,3 +1,4 @@
+import NotificationBell from "@/components/budget-requests/NotificationBell";
 import { ThemeToggle } from "@/components/ui/theme";
 import OrgMobileSidebar from "./orgMobileSIdebar";
 import OrgSwitcher from "./OrgSwitcher";
@@ -19,6 +20,7 @@ export default function OrgNavBar({
       <div className="flex items-center gap-3">
         <OrgSwitcher />
         <span className="hidden text-sm sm:inline">{name}</span>
+        <NotificationBell />
         <ThemeToggle />
       </div>
     </header>

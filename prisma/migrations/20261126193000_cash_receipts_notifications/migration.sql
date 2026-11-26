@@ -1,0 +1,14 @@
+CREATE TYPE "CashStatus" AS ENUM ('NOT_RELEASED', 'WITH_REVIEWER', 'AWAITING_RECEIPT', 'RECEIVED');
+ALTER TYPE "BudgetRequestStage" ADD VALUE 'PAYMENT';
+ALTER TYPE "BudgetRequestAction" ADD VALUE 'FUNDS_RECEIVED';
+ALTER TYPE "BudgetRequestAction" ADD VALUE 'CASH_HANDED_OVER';
+ALTER TYPE "BudgetRequestAction" ADD VALUE 'RECEIPT_CONFIRMED';
+ALTER TABLE "BudgetRequest" ADD COLUMN "cashStatus" "CashStatus" NOT NULL DEFAULT 'NOT_RELEASED', ADD COLUMN "reviewerReceivedAt" TIMESTAMP(3), ADD COLUMN "handedOverAt" TIMESTAMP(3), ADD COLUMN "receiptConfirmedAt" TIMESTAMP(3), ADD COLUMN "paymentReference" TEXT;
+ALTER TABLE "ExpenseTracker" ADD COLUMN "currency" TEXT NOT NULL DEFAULT 'USD', ADD COLUMN "budgetRequestId" TEXT;
+CREATE UNIQUE INDEX "ExpenseTracker_budgetRequestId_key" ON "ExpenseTracker"("budgetRequestId");
+ALTER TABLE "ExpenseTracker" ADD CONSTRAINT "ExpenseTracker_budgetRequestId_fkey" FOREIGN KEY ("budgetRequestId") REFERENCES "BudgetRequest"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+CREATE TABLE "BudgetNotification" ("id" TEXT NOT NULL, "organizationId" TEXT NOT NULL, "recipientId" TEXT NOT NULL, "requestId" TEXT NOT NULL, "title" TEXT NOT NULL, "message" TEXT NOT NULL, "readAt" TIMESTAMP(3), "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "BudgetNotification_pkey" PRIMARY KEY ("id"));
+CREATE INDEX "BudgetNotification_organizationId_recipientId_readAt_createdAt_idx" ON "BudgetNotification"("organizationId", "recipientId", "readAt", "createdAt");
+ALTER TABLE "BudgetNotification" ADD CONSTRAINT "BudgetNotification_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "BudgetNotification" ADD CONSTRAINT "BudgetNotification_recipientId_fkey" FOREIGN KEY ("recipientId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "BudgetNotification" ADD CONSTRAINT "BudgetNotification_requestId_fkey" FOREIGN KEY ("requestId") REFERENCES "BudgetRequest"("id") ON DELETE CASCADE ON UPDATE CASCADE;

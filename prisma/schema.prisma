@@ -10,6 +10,7 @@ datasource db {
 }
 
 model User {
+  notifications         BudgetNotification[]
   sentInvitations       OrganizationInvitation[]
   id                    String                   @id @default(uuid())
   name                  String
@@ -84,16 +85,19 @@ model ChatMessage {
 }
 
 model ExpenseTracker {
-  id             String   @id @default(cuid())
-  name           String
-  amount         Float
-  date           DateTime @default(now())
-  status         Status   @default(pending)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  author         String
-  description    String?
-  organizationId String?
+  id              String         @id @default(cuid())
+  name            String
+  currency        String         @default("USD")
+  budgetRequestId String?        @unique
+  budgetRequest   BudgetRequest? @relation(fields: [budgetRequestId], references: [id], onDelete: SetNull)
+  amount          Float
+  date            DateTime       @default(now())
+  status          Status         @default(pending)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  author          String
+  description     String?
+  organizationId  String?
 
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -158,6 +162,7 @@ enum FieldType {
 }
 
 model Organization {
+  notifications    BudgetNotification[]
   emailSettings    OrganizationEmailSettings?
   budgetReviewerId String?
   budgetPastorId   String?
@@ -184,13 +189,24 @@ enum BudgetRequestStatus {
   REJECTED
 }
 
+enum CashStatus {
+  NOT_RELEASED
+  WITH_REVIEWER
+  AWAITING_RECEIPT
+  RECEIVED
+}
+
 enum BudgetRequestStage {
+  PAYMENT
   SUBMITTED
   MAIN
   SECOND
 }
 
 enum BudgetRequestAction {
+  FUNDS_RECEIVED
+  CASH_HANDED_OVER
+  RECEIPT_CONFIRMED
   REASSIGNED
   SUBMITTED
   APPROVED
@@ -198,24 +214,31 @@ enum BudgetRequestAction {
 }
 
 model BudgetRequest {
-  id               String               @id @default(uuid())
-  organizationId   String
-  organization     Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  requesterId      String
-  requester        User                 @relation("BudgetRequester", fields: [requesterId], references: [id], onDelete: Restrict)
-  mainApproverId   String
-  mainApprover     User                 @relation("MainBudgetApprover", fields: [mainApproverId], references: [id], onDelete: Restrict)
-  secondApproverId String?
-  secondApprover   User?                @relation("SecondBudgetApprover", fields: [secondApproverId], references: [id], onDelete: Restrict)
-  title            String
-  description      String
-  amount           Decimal              @db.Decimal(14, 2)
-  currency         String               @default("USD")
-  neededBy         DateTime?
-  status           BudgetRequestStatus  @default(PENDING_MAIN)
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-  events           BudgetRequestEvent[]
+  cashStatus         CashStatus           @default(NOT_RELEASED)
+  reviewerReceivedAt DateTime?
+  handedOverAt       DateTime?
+  receiptConfirmedAt DateTime?
+  paymentReference   String?
+  expense            ExpenseTracker?
+  notifications      BudgetNotification[]
+  id                 String               @id @default(uuid())
+  organizationId     String
+  organization       Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requesterId        String
+  requester          User                 @relation("BudgetRequester", fields: [requesterId], references: [id], onDelete: Restrict)
+  mainApproverId     String
+  mainApprover       User                 @relation("MainBudgetApprover", fields: [mainApproverId], references: [id], onDelete: Restrict)
+  secondApproverId   String?
+  secondApprover     User?                @relation("SecondBudgetApprover", fields: [secondApproverId], references: [id], onDelete: Restrict)
+  title              String
+  description        String
+  amount             Decimal              @db.Decimal(14, 2)
+  currency           String               @default("USD")
+  neededBy           DateTime?
+  status             BudgetRequestStatus  @default(PENDING_MAIN)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  events             BudgetRequestEvent[]
 
   @@index([organizationId, requesterId, createdAt])
   @@index([organizationId, mainApproverId, status])
@@ -301,4 +324,20 @@ model OrganizationInvitation {
 
   @@unique([organizationId, email])
   @@index([organizationId, email, status])
+}
+
+model BudgetNotification {
+  id             String        @id @default(uuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  recipientId    String
+  recipient      User          @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  requestId      String
+  request        BudgetRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  title          String
+  message        String
+  readAt         DateTime?
+  createdAt      DateTime      @default(now())
+
+  @@index([organizationId, recipientId, readAt, createdAt])
 }

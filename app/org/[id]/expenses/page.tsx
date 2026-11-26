@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
+import { expenseTotals } from "@/lib/budget-requests/expense-totals";
 import * as React from "react";
 import { useParams } from "next/navigation";
 import { columns, Payment } from "./columns";
@@ -26,9 +27,9 @@ const OrgExpensesPage = () => {
     });
     // Fetch org expenses
     React.useEffect(() => {
+        setIsFetching(true);
         const fetchData = async () => {
             try {
-                setIsFetching(true);
                 const result = await fetch(`/api/budgetTracker?orgId=${orgId}`).then((res) => res.json());
                 const expenses = result.data || [];
                 setTableData(expenses);
@@ -47,7 +48,10 @@ const OrgExpensesPage = () => {
                 setIsFetching(false);
             }
         };
-        fetchData();
+        void fetchData();
+        const interval = window.setInterval(fetchData, 30000);
+        window.addEventListener("focus", fetchData);
+        return () => { window.clearInterval(interval); window.removeEventListener("focus", fetchData); };
     }, [orgId]);
     const handleSubmit = async (formData: any) => {
         setIsLoading(true);
@@ -81,7 +85,7 @@ const OrgExpensesPage = () => {
     const statCards = [
         {
             title: "Total Expenses",
-            value: `$${stats.total.toFixed(2)}`,
+            value: expenseTotals(tableData),
             icon: DollarSign,
             color: "text-blue-600 dark:text-blue-400",
         },
@@ -114,7 +118,7 @@ const OrgExpensesPage = () => {
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Organization Expenses</h1>
           <p className="text-muted-foreground">
-            Manage and track all expenses for this organization
+            Confirmed cash receipts appear here automatically. Approved budgets are added only after the requester confirms receiving the cash.
           </p>
         </div>
 

@@ -45,6 +45,6 @@ export const decisionSchema = z
   });
 
 export const listSchema = z.object({
-  scope: z.enum(["mine", "inbox", "all"]).default("mine"),
+  scope: z.enum(["mine", "inbox", "all", "payments"]).default("mine"),
   page: z.coerce.number().int().min(1).max(100000).default(1),
 });
