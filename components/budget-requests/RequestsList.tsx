@@ -25,6 +25,7 @@ export default function RequestsList({
   const access = useOrganizationAccess();
   const [scope, setScope] = useState(["mine", "inbox", "all", "payments"].includes(initialScope) ? initialScope : "mine");
   const [page, setPage] = useState(1);
+  useEffect(() => { setScope(["mine", "inbox", "all", "payments"].includes(initialScope) ? initialScope : "mine"); setPage(1); }, [initialScope]);
   const [data, setData] = useState<Result | null>(null);
   const [error, setError] = useState("");
   const [refresh, setRefresh] = useState(0);
