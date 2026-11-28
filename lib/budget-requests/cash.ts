@@ -4,7 +4,7 @@ import { z } from "zod";
 import { ForbiddenError, NotFoundError, RequestError } from "@/lib/http.error";
 import { visibility, type RequestContext } from "./access";
 import { requestInclude } from "./service";
-import { notifyBudget } from "./notifications";
+import { notifyBudget, organizationOwners } from "./notifications";
 const cashSchema = z.object({ action: z.enum(["RECEIVE_FUNDS", "HAND_OVER", "CONFIRM_RECEIPT"]), reference: z.string().trim().max(150).optional() }).strict();
 export async function recordCash(context: RequestContext, requestId: string, input: unknown) {
   z.string().uuid().parse(requestId);
@@ -35,7 +35,7 @@ export async function recordCash(context: RequestContext, requestId: string, inp
     await tx.budgetRequestEvent.create({ data: { requestId, actorId: context.userId, stage: "PAYMENT", action: eventAction, comment: action === "RECEIVE_FUNDS" ? reference || null : null } });
     const owners = confirming ? await tx.organizationMember.findMany({ where: { organizationId: context.organizationId, role: "OWNER" }, select: { userId: true } }) : [];
     await notifyBudget(tx, { organizationId: context.organizationId, requestId, actorId: context.userId,
-      recipients: confirming ? [request.mainApproverId, ...owners.map(owner => owner.userId)] : [request.requesterId],
+      recipients: [...await organizationOwners(tx, context.organizationId), ...(confirming ? [request.mainApproverId, ...owners.map(owner => owner.userId)] : [request.requesterId])],
       title: action === "RECEIVE_FUNDS" ? "Reviewer has collected the cash" : action === "HAND_OVER" ? "Confirm your cash receipt" : "Cash receipt confirmed · expense recorded", message: request.title });
     return tx.budgetRequest.findUniqueOrThrow({ where: { id: requestId }, include: requestInclude });
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 10000, timeout: 30000 });

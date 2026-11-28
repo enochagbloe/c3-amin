@@ -1,7 +1,6 @@
 import NotificationBell from "@/components/budget-requests/NotificationBell";
 import { ThemeToggle } from "@/components/ui/theme";
 import OrgMobileSidebar from "./orgMobileSIdebar";
-import OrgSwitcher from "./OrgSwitcher";
 export default function OrgNavBar({
   name,
   orgName,
@@ -15,10 +14,9 @@ export default function OrgNavBar({
         <span className="lg:hidden">
           <OrgMobileSidebar orgName={orgName} />
         </span>
-        <span className="font-semibold">C3 Church</span>
+        <span className="truncate text-sm font-medium">{orgName}</span>
       </div>
       <div className="flex items-center gap-3">
-        <OrgSwitcher />
         <span className="hidden text-sm sm:inline">{name}</span>
         <NotificationBell />
         <ThemeToggle />

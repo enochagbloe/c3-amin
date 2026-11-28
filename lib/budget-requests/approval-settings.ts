@@ -1,4 +1,4 @@
-import { notifyBudget } from "./notifications";
+import { notifyBudget, notifyOrganization, organizationOwners } from "./notifications";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@/lib/generated/prisma";
 import { ForbiddenError, RequestError } from "@/lib/http.error";
@@ -125,6 +125,7 @@ export async function updateApprovalSettings(
             comment: `Reviewer: ${people.find((person) => person.id === (request.status === "PENDING_MAIN" ? reviewerId : request.mainApproverId))?.name ?? "Previous reviewer (unchanged)"}. Final pastor: ${people.find((person) => person.id === pastorId)?.name}.`,
           })),
         });
+      await notifyOrganization(tx, { organizationId: context.organizationId, actorId: context.userId, recipients: [...await organizationOwners(tx, context.organizationId), reviewerId, pastorId], title: "Approval assignments changed", message: `Reviewer: ${people.find(person => person.id === reviewerId)?.name}. Final approver: ${people.find(person => person.id === pastorId)?.name}.`, href: `/org/${context.organizationId}/settings?tab=organization` });
       for (const request of changed) await notifyBudget(tx, { organizationId: context.organizationId, requestId: request.id, actorId: context.userId, recipients: [request.requesterId, request.status === "PENDING_MAIN" ? reviewerId : pastorId], title: "Budget approval route updated", message: request.title });
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 10000, timeout: 30000 },

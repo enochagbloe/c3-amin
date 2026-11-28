@@ -19,10 +19,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (!account?.password || account.user.status !== 'active' ||
           !(await bcrypt.compare(password, account.password))) return null;
       const { id, name, image } = account.user;
-      return { id, name, image, email: account.user.email };
+      return { id, name, image, email: account.user.email, sessionVersion: account.user.sessionVersion };
     },
   })],
   callbacks: {
+    async jwt({ token, user }) {
+      if (!token.sub) return null;
+      const current = await prisma.user.findUnique({ where: { id: token.sub }, select: { status: true, sessionVersion: true } });
+      if (user) token.sessionVersion = (user as { sessionVersion?: number }).sessionVersion ?? 0;
+      if (!current || current.status !== 'active' || current.sessionVersion !== (token.sessionVersion ?? 0)) return null;
+      return token;
+    },
     async session({ session, token }) {
       session.user.id = token.sub as string;
       return session;

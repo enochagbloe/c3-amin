@@ -1,3 +1,4 @@
+import { recordOwnerActivity, notifyOrganization, organizationOwners } from "@/lib/budget-requests/notifications";
 import { createHash, randomBytes } from "node:crypto";
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
@@ -110,6 +111,7 @@ export async function sendInvitation(organizationId: string, input: unknown) {
       expiresAt,
       status: "PENDING",
       acceptedAt: null,
+      expiryNotifiedAt: null,
       acceptedById: null,
       emailStatus: delivery === "link" ? "NOT_SENT" : "PENDING",
       emailId: null,
@@ -120,6 +122,7 @@ export async function sendInvitation(organizationId: string, input: unknown) {
   const invitationUrl = new URL(`/invitations/${token}`, origin).toString();
   if (delivery === "link") {
     const safe = await prisma.organizationInvitation.findUniqueOrThrow({ where: { id: invitation.id }, select: safeInvitation });
+    await recordOwnerActivity({ organizationId, actorId: owner.userId, title: "Invitation link created", message: `A private invitation link was created for ${email}.`, href: `/org/${organizationId}/settings?tab=team` });
     return { ...safe, invitationUrl };
   }
   try {
@@ -147,23 +150,24 @@ export async function sendInvitation(organizationId: string, input: unknown) {
       },
     });
   }
-  return prisma.organizationInvitation.findUniqueOrThrow({
-    where: { id: invitation.id },
-    select: safeInvitation,
-  });
+  const saved = await prisma.organizationInvitation.findUniqueOrThrow({ where: { id: invitation.id }, select: safeInvitation });
+  await recordOwnerActivity({ organizationId, actorId: owner.userId, title: saved.emailStatus === "FAILED" ? "Invitation email failed" : "Invitation email sent", message: `Invitation for ${email}.`, href: `/org/${organizationId}/settings?tab=team` });
+  return saved;
 }
 export async function revokeInvitation(organizationId: string, id: string) {
-  await requireOrganizationOwner(organizationId);
+  const owner = await requireOrganizationOwner(organizationId);
   z.string().uuid().parse(id);
+  const invitation = await prisma.organizationInvitation.findFirst({ where: { id, organizationId }, select: { email: true } });
   const result = await prisma.organizationInvitation.updateMany({
     where: { id, organizationId, status: "PENDING" },
     data: { status: "REVOKED" },
   });
   if (!result.count) throw new NotFoundError("Pending invitation");
+  await recordOwnerActivity({ organizationId, actorId: owner.userId, title: "Invitation revoked", message: `Invitation for ${invitation?.email ?? "a member"} was revoked.`, href: `/org/${organizationId}/settings?tab=team` });
   return { revoked: true };
 }
 export async function checkDelivery(organizationId: string, id: string) {
-  await requireOrganizationOwner(organizationId);
+  const owner = await requireOrganizationOwner(organizationId);
   z.string().uuid().parse(id);
   const invitation = await prisma.organizationInvitation.findFirst({
     where: { id, organizationId },
@@ -177,11 +181,13 @@ export async function checkDelivery(organizationId: string, id: string) {
       configuration.apiKey,
       invitation.emailId,
     );
-    return await prisma.organizationInvitation.update({
+    const updated = await prisma.organizationInvitation.update({
       where: { id },
       data: { emailStatus },
       select: safeInvitation,
     });
+    if (emailStatus !== invitation.emailStatus) await recordOwnerActivity({ organizationId, actorId: owner.userId, title: `Invitation delivery: ${emailStatus.toLowerCase()}`, message: `Delivery status for ${invitation.email}.`, href: `/org/${organizationId}/settings?tab=team` });
+    return updated;
   } catch (error) {
     throw new RequestError(
       502,
@@ -275,6 +281,9 @@ export async function acceptInvitation(token: string) {
         },
         update: {},
       });
+      const owners = await organizationOwners(tx, invitation.organizationId);
+      await notifyOrganization(tx, { organizationId: invitation.organizationId, actorId: userId, recipients: owners, ownerOnly: true, title: "Member joined the organization", message: `${user.email} accepted their invitation.`, href: `/org/${invitation.organizationId}/settings?tab=team` });
+      if (!owners.includes(userId)) await notifyOrganization(tx, { organizationId: invitation.organizationId, actorId: userId, recipients: [userId], title: "You joined the organization", message: "Your invitation was accepted. You can now request budgets.", href: `/org/${invitation.organizationId}/dashboard` });
       return { organizationId: invitation.organizationId };
     },
     { isolationLevel: "Serializable", maxWait: 10000, timeout: 30000 },

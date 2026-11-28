@@ -1,4 +1,4 @@
-import { notifyBudget } from "./notifications";
+import { notifyBudget, organizationOwners } from "./notifications";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@/lib/generated/prisma";
 import { ForbiddenError, NotFoundError, RequestError } from "@/lib/http.error";
@@ -109,7 +109,7 @@ export async function createRequest(context: RequestContext, input: unknown) {
         },
         include: requestInclude,
       });
-      await notifyBudget(tx, { organizationId: context.organizationId, requestId: created.id, actorId: context.userId, recipients: [mainApproverId], title: "Budget request needs your review", message: created.title });
+      await notifyBudget(tx, { organizationId: context.organizationId, requestId: created.id, actorId: context.userId, recipients: [mainApproverId, ...await organizationOwners(tx, context.organizationId)], title: "New budget request submitted", message: created.title });
       return created;
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 10000, timeout: 30000 },
@@ -177,7 +177,7 @@ export async function decideRequest(
         },
       });
       await notifyBudget(tx, { organizationId: context.organizationId, requestId, actorId: context.userId,
-        recipients: [request.requesterId, ...(status === "PENDING_SECOND" ? [request.secondApproverId] : status === "APPROVED" ? [request.mainApproverId] : [])],
+        recipients: [...await organizationOwners(tx, context.organizationId), request.requesterId, ...(status === "PENDING_SECOND" ? [request.secondApproverId] : status === "APPROVED" ? [request.mainApproverId] : [])],
         title: status === "REJECTED" ? "Budget request rejected" : status === "APPROVED" ? "Budget approved · cash collection pending" : "First approval recorded · awaiting final approval", message: request.title });
       return tx.budgetRequest.findUniqueOrThrow({
         where: { id: requestId },

@@ -20,13 +20,13 @@ export default function OrgMobileSidebar({ orgName }: { orgName: string }) {
           <Menu />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left">
-        <SheetHeader>
+      <SheetContent side="left" className="flex h-svh flex-col gap-0 p-0">
+        <SheetHeader className="sr-only">
           <SheetTitle>{orgName}</SheetTitle>
         </SheetHeader>
-        <nav className="mt-6">
+        <div className="min-h-0 flex-1 pt-8">
           <OrgSidebar isMobile orgName={orgName} />
-        </nav>
+        </div>
       </SheetContent>
     </Sheet>
   );

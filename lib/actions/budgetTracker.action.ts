@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
+import { recordOwnerActivity } from "@/lib/budget-requests/notifications";
 import { revalidatePath } from "next/cache";
 import { ExpenseTracker, Status } from "../generated/prisma";
 import action from "../handler/action";
@@ -46,7 +47,7 @@ export async function createBudgetExpense(
         organizationId: (params as any).organizationId || null, // Add org support
       },
     });
-    console.log("New Expense Created:", newExpenses);
+    if (newExpenses.organizationId) await recordOwnerActivity({ organizationId: newExpenses.organizationId, actorId: userId, title: "Expense created", message: newExpenses.name, href: `/org/${newExpenses.organizationId}/expenses` });
     return { success: true, data: newExpenses };
   } catch (error) {
     return handleError(error) as ErrorResponse;
@@ -173,6 +174,7 @@ export async function updateExpenseStatus(
       where: { id },
       data: { status: status as Status },
     });
+    if (updatedExpense.organizationId) await recordOwnerActivity({ organizationId: updatedExpense.organizationId, actorId: userId, title: "Expense status changed", message: `${updatedExpense.name}: ${status}.`, href: `/org/${updatedExpense.organizationId}/expenses` });
     revalidatePath("/expenses");
 
     return { success: true, data: updatedExpense };
@@ -235,6 +237,7 @@ export async function deleteExpense(
     const deletedExpense = await prisma.expenseTracker.delete({
       where: { id: expensesId },
     });
+    if (deletedExpense.organizationId) await recordOwnerActivity({ organizationId: deletedExpense.organizationId, actorId: userId, title: "Expense deleted", message: deletedExpense.name, href: `/org/${deletedExpense.organizationId}/expenses` });
     return { success: true, data: deletedExpense };
   } catch (error) {
     return handleError(error) as ErrorResponse;

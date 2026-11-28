@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
+import { recordOwnerActivity } from "@/lib/budget-requests/notifications";
 import { createIncomeSchema, GetIncomeSchema } from "@/lib/validations";
 import prisma from "../prisma";
 import action from "../handler/action";
@@ -83,7 +84,7 @@ export async function CreateIncome(params: CreateIncome): Promise<ActionResponse
             );
         }
 
-        console.log("New Income Created:", newIncome);
+        if (newIncome.organizationId) await recordOwnerActivity({ organizationId: newIncome.organizationId, actorId: userId, title: "Income recorded", message: newIncome.name, href: `/org/${newIncome.organizationId}/income` });
         return { success: true, data: newIncome };
     } catch (error) {
         return handleError(error) as ErrorResponse;

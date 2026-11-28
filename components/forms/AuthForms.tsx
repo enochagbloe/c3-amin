@@ -95,6 +95,7 @@ const AuthForms = <T extends FieldValues>({
           />
         ))}
 
+        {formType === "SIGN_IN" && <div className="text-right"><Link href="/forgot-password" className="text-sm underline">Forgot password?</Link></div>}
         <Button
           disabled={form.formState.isSubmitting}
           className="primary-gradient paragraph-medium min-h-12 w-full rounded-2 px-4 py-3 font-inter !text-light-900"

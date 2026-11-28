@@ -18,12 +18,12 @@ type Result = {
   pageSize: number;
 };
 export default function RequestsList({
-  organizationId,
+  organizationId, initialScope = "mine",
 }: {
-  organizationId: string;
+  organizationId: string; initialScope?: string;
 }) {
   const access = useOrganizationAccess();
-  const [scope, setScope] = useState("mine");
+  const [scope, setScope] = useState(["mine", "inbox", "all", "payments"].includes(initialScope) ? initialScope : "mine");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<Result | null>(null);
   const [error, setError] = useState("");

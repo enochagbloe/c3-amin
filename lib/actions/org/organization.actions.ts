@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 "use server";
 
+import { recordOwnerActivity } from "@/lib/budget-requests/notifications";
 import { Prisma } from "@/lib/generated/prisma";
 import prisma from "@/lib/prisma";
 import action from "@/lib/handler/action";
@@ -70,6 +71,7 @@ export async function createOrganization(
       console.warn("Failed to update user organizationId in PostgreSQL:", databaseError);
     }
 
+    await recordOwnerActivity({ organizationId: organization.id, actorId: userId, title: "Organization created", message: organization.name });
     return { success: true, data: organization };
   } catch (error) {
     return handleError(error) as ErrorResponse;
@@ -217,6 +219,7 @@ export async function updateOrganization(
       },
     });
 
+    await recordOwnerActivity({ organizationId: id, actorId: userId, title: "Organization settings updated", message: organization.name, href: `/org/${id}/settings?tab=organization` });
     return { success: true, data: organization };
   } catch (error) {
     return handleError(error) as ErrorResponse;
@@ -333,6 +336,8 @@ export async function addOrganizationMember(
       },
     });
 
+    const addedUser = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+    await recordOwnerActivity({ organizationId, actorId: currentUserId, alsoNotify: [userId], title: "Member added to organization", message: `${addedUser?.name ?? "A member"} joined as ${role}.`, href: `/org/${organizationId}/settings` });
     return { success: true, data: member };
   } catch (error) {
     return handleError(error) as ErrorResponse;
@@ -405,6 +410,8 @@ export async function updateOrganizationMemberRole(
       data: { role },
     });
 
+    const changedUser = await prisma.user.findUnique({ where: { id: member.userId }, select: { name: true } });
+    await recordOwnerActivity({ organizationId: member.organizationId, actorId: userId, alsoNotify: [member.userId], title: "Member role changed", message: `${changedUser?.name ?? "A member"} now has the ${role} role.`, href: `/org/${member.organizationId}/settings` });
     return { success: true, data: updatedMember };
   } catch (error) {
     return handleError(error) as ErrorResponse;
@@ -481,6 +488,8 @@ export async function removeOrganizationMember(
       where: { id: memberId },
     });
 
+    const removedUser = await prisma.user.findUnique({ where: { id: member.userId }, select: { name: true } });
+    await recordOwnerActivity({ organizationId: member.organizationId, actorId: userId, title: "Member removed", message: `${removedUser?.name ?? "A member"} was removed from the organization.`, href: `/org/${member.organizationId}/settings?tab=team` });
     return { success: true, data: { message: "Member removed successfully" } };
   } catch (error) {
     return handleError(error) as ErrorResponse;
